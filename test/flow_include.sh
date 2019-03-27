@@ -203,11 +203,16 @@ function countall {
   sumlogs post_total $LOGDIR/sr_watch_f40_*.log*
   totwatch="${tot}"
 
-  sumlogs msg_total $LOGDIR/sr_subscribe_t_f30_*.log*
+  sumlogs msg_total $LOGDIR/sr_subscribe_amqp_f30_*.log*
   totmsgt="${tot}"
-
-  sumlogs file_total $LOGDIR/sr_subscribe_t_f30_*.log*
+  sumlogs file_total $LOGDIR/sr_subscribe_amqp_f30_*.log*
   totfilet="${tot}"
+
+  #isumlogs msg_total $LOGDIR/sr_subscribe_mqtt_f32_*.log*
+  totmsgmqtt="${tot}"
+  #sumlogs file_total $LOGDIR/sr_subscribe_mqtt_f32_*.log*
+  totfilemqtt="${tot}"
+
 
   countthem "`grep post_log "$LOGDIR"/sr_sender_tsource2send_f50_*.log* | grep -v DEBUG | wc -l`"
   totsent="${tot}"

@@ -2037,7 +2037,7 @@ class sr_config:
                      ok, url      = self.validate_urlstr(urlstr)
                      self.manager = url
                      self.users[url.username] = 'feeder'
-                     if not ok or not url.scheme in ['amqp','amqps']:
+                     if not ok or not url.scheme in ['amqp','amqps','mqtt']:
                         self.logger.error("invalid manager url (%s)" % urlstr)
                         needexit = True
                      n = 2

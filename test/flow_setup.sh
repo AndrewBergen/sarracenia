@@ -97,7 +97,8 @@ fi
 if [ ! -d "$testdocroot" ]; then
   mkdir $testdocroot
   cp -r testree/* $testdocroot
-  mkdir $testdocroot/downloaded_by_sub_t
+  mkdir $testdocroot/downloaded_by_sub_amqp
+  mkdir $testdocroot/downloaded_by_sub_mqtt
   mkdir $testdocroot/downloaded_by_sub_u
   mkdir $testdocroot/sent_by_tsource2send
   mkdir $testdocroot/recd_by_srpoll_test1
@@ -209,7 +210,7 @@ fi
 
 adminpw="`awk ' /bunnymaster:.*\@localhost/ { sub(/^.*:/,""); sub(/\@.*$/,""); print $1; exit }; ' "$CONFDIR"/credentials.conf`"
 
-qchk 20 "queues existing after 1st audit" 
+qchk 22 "queues existing after 1st audit"
 
 xchk "exchanges for flow test created"
 

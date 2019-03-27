@@ -107,6 +107,8 @@ calcres ${totsarp}    ${totwinpost} "sr_sarra\t (${totsarp}) should have the sam
 calcres ${totfilet}   ${totsarp}    "sr_subscribe\t (${totfilet}) should have the same number of items as sarra\t\t (${totsarp})"
 echo "                 | watch      routing |"
 calcres ${totwatch}   ${t4}         "sr_watch\t\t (${totwatch}) should be 4 times subscribe t_f30\t\t  (${totfilet})"
+calcres ${totmsgmqtt} ${totmsgt}    "mqtt_f32\t\t (${totmsgmqtt}) should be the same as amqp_f30\t\t  (${totmsgt})"
+calcres ${totfilemqtt} ${totfilet}  "mqtt_f32\t\t (${totfilemqtt}) should be the same as amqp_f30\t\t  (${totfilet})"
 calcres ${totsent}    ${totwatch}   "sr_sender\t\t (${totsent}) should have the same number of items as sr_watch  (${totwatch})"
 calcres ${totsubu}    ${totsent}    "sr_subscribe u_sftp_f60 (${totsubu}) should have the same number of items as sr_sender (${totsent})"
 calcres ${totsubcp}   ${totsent}    "sr_subscribe cp_f61\t (${totsubcp}) should have the same number of items as sr_sender (${totsent})"
