@@ -57,7 +57,7 @@ class sr_instances(sr_config):
         if _platform != 'win32':
             signal.signal(signal.SIGHUP, self.reload_signal)
 
-        sr_config.__init__(self,config,args,action)
+        super().__init__(config,args,action)
 
         self.cwd = os.getcwd()
         self.configure()
