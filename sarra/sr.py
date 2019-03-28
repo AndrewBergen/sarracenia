@@ -99,6 +99,8 @@ def instantiate(dirconf,pgm,confname,action):
                   cfg.logger.error("code not configured for process type sr_%s" % pgm)
                   sys.exit(1)
 
+            inst.logger = cfg.logger
+
             if    action == 'cleanup': inst.exec_action('cleanup',False)
             elif  action == 'declare': inst.exec_action('declare',False)
             elif  action == 'setup':   inst.exec_action('setup',  False)
