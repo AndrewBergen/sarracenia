@@ -1188,7 +1188,7 @@ class sr_config:
                 if sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_info.minor < 5) :
                         subprocess.check_call(cmd_list, close_fds=False )
                 else :
-                        self.logger.debug("using subprocess.run")
+                        self.logger.debug("using subprocess.run cmdlst=%s" %  ' '.join(cmd_list))
                         if sc_path and cmd_list[0].startswith("sr_cp"):
                           subprocess.run([sc_path+'/'+cmd_list[0]]+cmd_list[1:],check=True)
                         elif sr_path and cmd_list[0].startswith("sr"):
