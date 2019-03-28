@@ -236,14 +236,15 @@ class sr_message():
 
         #self.logger.debug("attributes= %s" % vars(msg))
         if msg :
+           self.logger.debug('msg={}'.format(vars(msg)))
            self.exchange  = msg.delivery_info['exchange']
            self.topic     = msg.delivery_info['routing_key']
            self.topic     = self.topic.replace('%20',' ')
            self.topic     = self.topic.replace('%23','#')
-           if msg.body[0] == '[' :
+           if msg.body[0] == '[' or msg.body[0] == 91:
                self.pubtime, self.baseurl, self.relpath, self.headers = json.loads(msg.body)
                self.notice = "%s %s %s" % ( self.pubtime, self.baseurl, self.relpath )
-           elif msg.body[0] == '{' :
+           elif msg.body[0] == '{' or msg.body[0] == 123:
                self.headers = json.loads(msg.body)
                self.pubtime = self.headers[ "pubTime" ]
                self.baseurl = self.headers[ "baseUrl" ]
