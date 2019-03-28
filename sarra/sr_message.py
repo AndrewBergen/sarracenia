@@ -516,7 +516,8 @@ class sr_message():
         elif self.post_topic_prefix.startswith('v03.post') and self.inline \
             and not ( 'content' in self.headers ) :
   
-            self.logger.error("headers: %s" % self.headers )
+            self.logger.warning("Found post_topic_prefix={} headers={} with inline={} without content"
+                                .format(self.post_topic_prefix, self.headers, self.inline))
 
             if 'size' in self.headers :
                 sz = int(self.headers[ 'size' ])
