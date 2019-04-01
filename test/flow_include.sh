@@ -208,7 +208,7 @@ function countall {
   sumlogs file_total $LOGDIR/sr_subscribe_amqp_f30_*.log*
   totfilet="${tot}"
 
-  countthem "`grep publishing $LOGDIR/sr_subscribe_mqtt_f31_*.log* | grep -v DEBUG | wc -l`"
+  sumlogs msg_total $LOGDIR/sr_subscribe_mqtt_f31_*.log*
   totmsgmqtt="${tot}"
   sumlogs file_total $LOGDIR/sr_subscribe_mqtt_f32_*.log*
   totfilemqtt="${tot}"

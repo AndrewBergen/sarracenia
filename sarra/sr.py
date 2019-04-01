@@ -111,7 +111,7 @@ def instantiate(dirconf,pgm,confname,action):
 
     except:
             cfg.logger.error("could not instantiate and run sr_%s %s %s" % (pgm,action,confname))
-            cfg.logger.debug('Exception information: ', exc_info=True)
+            cfg.logger.debug('Exception details: ', exc_info=True)
             sys.exit(1)
 
       

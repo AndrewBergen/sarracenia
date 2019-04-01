@@ -106,7 +106,7 @@ calcres ${totwinnow}  ${tot2shov}   "sr_winnow\t\t (${totwinnow}) should have th
 calcres ${totsarp}    ${totwinpost} "sr_sarra\t\t (${totsarp}) should have the same number of items as winnows'post\t (${totwinpost})"
 calcres ${totfilet}   ${totsarp}    "sr_subscribe amqp_f30\t (${totfilet}) should have the same number of files as sarra\t\t (${totsarp})"
 calcres ${totmsgmqtt} ${totmsgt}    "sr_subscribe mqtt_f31\t (${totmsgmqtt}) should have the same number of msg as amqp_f30\t\t (${totmsgt})"
-calcres ${totfilemqtt} ${totfilet}  "sr_subscribe mqtt_f32\t (${totfilemqtt}) should have the same number of files as amqp_f30\t (${totfilet})"
+calcres ${totfilemqtt} ${totfilet}  "sr_subscribe mqtt_f32\t (${totfilemqtt}) should have the same number of files as sarra\t\t (${totsarp})"
 echo "                 | watch      routing |"
 calcres ${totwatch}   ${t4}         "sr_watch\t\t (${totwatch}) should be 4 times subscribe amqp_f30\t\t\t (${totfilet})"
 calcres ${totsent}    ${totwatch}   "sr_sender\t\t (${totsent}) should have the same number of items as sr_watch\t (${totwatch})"

@@ -104,7 +104,6 @@ class EXP_2MQTT(object):
 
       logger = parent.logger
       msg    = parent.msg
-      logger.info(msg)
 
       if parent.post_exchange:
           mqtt_topic = parent.post_exchange + '/v03/post' + os.path.dirname(parent.msg.relpath)

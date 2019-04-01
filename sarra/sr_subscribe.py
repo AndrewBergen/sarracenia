@@ -1470,6 +1470,7 @@ class sr_subscribe(sr_instances):
 
                    except Exception as ex:
                           self.logger.warning( "failed to set sattributes %s: %s" % ( path, ex ) )
+                          self.logger.error('Exception details:', exc_info=True)
 
                    # tell upstream that we changed the checksum.
                    if self.reportback:
