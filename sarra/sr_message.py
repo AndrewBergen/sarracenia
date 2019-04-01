@@ -40,13 +40,6 @@ from codecs import decode,encode
 
 import json
 
-try:
-    import xattr
-    supports_extended_attributes=True
-
-except:
-    supports_extended_attributes=False
-
 # AMQP limits headers to 'short string', or 255 characters, so truncate and warn.
 amqp_ss_maxlen = 253
 
@@ -56,8 +49,10 @@ from mimetypes import guess_type
 
 try :
          from sr_util         import *
+         from sr_xattr        import *
 except :
          from sarra.sr_util    import *
+         from sarra.sr_xattr   import *
 
 class sr_message():
 
@@ -71,7 +66,9 @@ class sr_message():
         self.exchange      = None
         self.report_exchange  = parent.report_exchange
         self.topic_prefix  = parent.topic_prefix
+        self.version  = parent.version
         self.post_topic_prefix  = parent.post_topic_prefix
+        self.post_version  = parent.post_version
         self.report_publisher = None
         self.publisher     = None
         self.pub_exchange  = None
@@ -184,11 +181,13 @@ class sr_message():
 
         if supports_extended_attributes:
             try:
-                attr = xattr.xattr(os.path.join(self.new_dir, self.new_file))
-                if 'user.sr_sum' in attr:
-                    self.logger.debug("checksum extracted using xattr")
-                    self.local_checksum = attr['user.sr_sum'].decode("utf-8")[2:]
-                    return
+                x = sr_xattr( os.path.join(self.new_dir, self.new_file) )
+                s = x.get( 'sum' )
+
+                if s:
+                   self.local_checksum = s
+                   return
+
             except:
                 pass
 
@@ -255,12 +254,22 @@ class sr_message():
                    if type( self.headers[ "integrity" ] ) is str:
                        self.headers[ "integrity" ] = json.loads( self.headers[ "integrity" ] )
                    sa = sum_algo_v3tov2[ self.headers[ "integrity" ][ "method" ] ]
-                   if sa in [ 'random' ]:
+
+                   # transform sum value
+                   if sa in [ '0' ]:
                        sv = self.headers[ "integrity" ][ "value" ]
                    elif sa in [ 'z' ]:
                        sv = sum_algo_v3tov2[ self.headers[ "integrity" ][ "value" ] ]
                    else:
                        sv = encode( decode( self.headers[ "integrity" ][ "value" ].encode('utf-8'), "base64" ), 'hex' ).decode('utf-8')
+                   # set event.
+                   if sa == 'L' :
+                       self.event = 'link'
+                   elif sa == 'R':
+                       self.event = 'delete'
+                   else:
+                       self.event = 'modify'
+
                    self.headers[ "sum" ] = sa + ',' + sv
                    self.sumstr = self.headers['sum']
                    del self.headers['integrity']
@@ -384,16 +393,22 @@ class sr_message():
         if self.report_publisher != None :
 
            # run on_report plugins
+           ok=True
            for plugin in self.parent.on_report_list :
-               if not plugin(self.parent): return False
+               if not plugin(self.parent): 
+                   ok=False
+                   break
 
            # publish
-           self.report_publisher.publish(self.report_exchange,self.report_topic,self.report_notice,self.headers)
+           if ok:
+               self.report_publisher.publish(self.report_exchange,self.report_topic,self.report_notice,self.headers)
 
         self.logger.debug("%d %s : %s %s %s" % (code,message,self.report_topic,self.report_notice,self.hdrstr))
 
         # make sure not published again
-        del self.headers['message']
+        for i in [ 'message', 'report' ]:
+            if i in self.headers:
+                del self.headers[i]
 
     def parse_v00_post(self):
         token             = self.topic.split('.')
@@ -450,7 +465,7 @@ class sr_message():
 
         if self.mtype == 'report' or self.mtype == 'log': # log included for compatibility... prior to rename..
 
-           if self.topic_prefix.startswith('v02'):
+           if self.version == 'v02':
                self.report_code   = int(token[3])
                self.report_host   = token[4]
                self.report_user   = token[5]
@@ -463,6 +478,12 @@ class sr_message():
 
         if 'sum' in self.headers:
            self.sumstr = self.headers['sum']
+           if self.sumstr[0] == 'R':
+              self.event = 'delete'
+           elif self.sumstr[0] == 'L':
+              self.event = 'link'
+           else:
+              self.event = 'modify'
 
         if 'to_clusters' in self.headers:
            self.to_clusters = self.headers['to_clusters'].split(',')
@@ -485,7 +506,7 @@ class sr_message():
 
         if self.pub_exchange != None : self.exchange = self.pub_exchange
 
-        if not self.post_topic_prefix.startswith('v03'):
+        if not ( self.post_version == 'v03' ): 
            # truncated content is useless, so drop it.
            if 'content' in self.headers :
                del self.headers['content']
@@ -513,8 +534,8 @@ class sr_message():
         elif ( self.headers[ 'sum' ][0] in [ 'L', 'R' ] ) :
             # avoid inlining if it is a link or a remove.
             pass
-        elif self.post_topic_prefix.startswith('v03.post') and self.inline \
-            and not ( 'content' in self.headers ) :
+        elif ( self.post_version == 'v03' ) and ( 'post' in self.post_topic_prefix ) \
+            and self.inline and not ( 'content' in self.headers ) :
   
             self.logger.warning("Found post_topic_prefix={} headers={} with inline={} without content"
                                 .format(self.post_topic_prefix, self.headers, self.inline))
@@ -555,7 +576,6 @@ class sr_message():
                         except:
                             self.headers[ "content" ] = { "encoding": "base64", "value": b64encode(d).decode('utf-8') }
     
-
         # AMQP limits topic to 255 characters, space and # replaced, if greater than limit : truncate and warn.
         self.topic = self.topic.replace(' ','%20')
         self.topic = self.topic.replace('#','%23')
@@ -595,7 +615,7 @@ class sr_message():
            suffix=""
 
         if self.publisher != None :
-           if self.topic.startswith('v03'):
+           if self.version == 'v03':
                self.headers[ "pubTime" ] = timev2tov3str( self.pubtime )
                if "mtime" in self.headers.keys():
                    self.headers[ "mtime" ] = timev2tov3str( self.headers[ "mtime" ] )
@@ -605,14 +625,15 @@ class sr_message():
                self.headers[ "relPath" ] = self.relpath
                
                sum_algo_map = { "a":"arbitrary", "d":"md5", "s":"sha512", "n":"md5name", "0":"random", "L":"link", "R":"remove", "z":"cod" }
-               sm = sum_algo_map[ self.headers["sum"][0] ]
-               if sm in [ 'random' ] :
-                   sv = self.headers["sum"][2:]
-               elif sm in [ 'cod' ] :
-                   sv = sum_algo_map[ self.headers["sum"][2:] ]
-               else:
-                   sv = encode( decode( self.headers["sum"][2:], 'hex'), 'base64' ).decode('utf-8').strip()
-               self.headers[ "integrity" ] = { "method": sm, "value": sv }
+               if 'sum' in self.headers:
+                   sm = sum_algo_map[ self.headers["sum"][0] ]
+                   if sm in [ 'random' ] :
+                       sv = self.headers["sum"][2:]
+                   elif sm in [ 'cod' ] :
+                       sv = sum_algo_map[ self.headers["sum"][2:] ]
+                   else:
+                       sv = encode( decode( self.headers["sum"][2:], 'hex'), 'base64' ).decode('utf-8').strip()
+                   self.headers[ "integrity" ] = { "method": sm, "value": sv }
 
                if 'parts' in self.headers.keys():
                    self.set_parts_from_str(self.headers['parts'])

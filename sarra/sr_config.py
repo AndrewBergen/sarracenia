@@ -45,10 +45,12 @@ try :
    from sr_checksum          import *
    from sr_credentials       import *
    from sr_util              import *
+   from sr_xattr             import *
 except :
    from sarra.sr_checksum    import *
    from sarra.sr_credentials import *
    from sarra.sr_util        import *
+   from sarra.sr_xattr       import *
 
 # ======= amqp alternative libraries =======
 try:
@@ -62,12 +64,6 @@ try:
 except ImportError:
    pika_available = False
 # ==========================================
-
-try:
-   import xattr
-   supports_extended_attributes=True
-except ImportError:
-   supports_extended_attributes=False
 
 if sys.hexversion > 0x03030000 :
    from shutil import get_terminal_size
@@ -276,7 +272,7 @@ class sr_config:
         # user_cache_dir will be created later in configure()
 
         # host attributes
-        self.supports_extended_attributes = supports_extended_attributes
+        #self.supports_extended_attributes = supports_extended_attributes
 
 
     def xcl( self, x ):
@@ -305,8 +301,9 @@ class sr_config:
            ( self.mirror, self.flatten, self.realpath_post, self.strip, self.base_dir, self.reportback ) )
 
         if self.post_broker :
-            self.logger.info( "\tpost_base_dir=%s post_base_url=%s post_topic_prefix=%s sum=%s blocksize=%s " % \
-               ( self.post_base_dir, self.post_base_url, self.post_topic_prefix, self.sumflg, self.blocksize ) )
+            self.logger.info( "\tpost_base_dir=%s post_base_url=%s post_topic_prefix=%s post_version=%s sum=%s blocksize=%s " % \
+               ( self.post_base_dir, self.post_base_url, self.post_topic_prefix, 
+                 self.post_version, self.sumflg, self.blocksize ) )
 
         self.logger.info('\tPlugins configured:')
 
@@ -659,7 +656,9 @@ class sr_config:
         self.exchange_suffix      = None
         self.exchanges            = [ 'xlog', 'xpublic', 'xreport', 'xwinnow' ]
         self.topic_prefix         = 'v02.post'
+        self.version              = 'v02'
         self.post_topic_prefix    = None
+        self.post_version         = 'v02'
         self.subtopic             = None
 
         self.queue_name           = None
@@ -1630,7 +1629,6 @@ class sr_config:
                         self.cache_stat = self.isTrue(words[1])
                         n = 2
 
-
                 elif words0 in [ 'chmod', 'default_mode', 'dm']:    # See: sr_config.7.rst
                      self.chmod = int(words[1],8)
                      n = 2
@@ -1862,17 +1860,19 @@ class sr_config:
                      else :
                         self.headers_to_add [key] = value
 
-                     if supports_extended_attributes:
-                        if key.lower() == "sum":
+                     if key.lower() == "sum":
                            glob_lst = []
                            glob_lst.extend(glob.glob(word) for word in words[2:] if word != [])
                            file_lst = [f for sub_lst in glob_lst for f in sub_lst]  
                            for xfile in file_lst:
                               try: 
-                                  xattr.setxattr(xfile, 'user.sr_sum', bytes(value,"utf-8"))
+                                  x = sr_xattr(xfile)
+                                  x.set( 'sum', value )
+
                                   xmtime = timeflt2str(time.time())
-                                  xattr.setxattr(xfile, 'user.sr_mtime', bytes(xmtime,"utf-8"))
+                                  x.set( 'mtime', xmtime )
                                   self.logger.debug("xattr sum set for file: {0} => {1}".format(xfile, value))
+                                  x.persist()
                               except:
                                   self.logger.error("could not setxattr (permission denied?)")
                                   self.logger.debug('Exception details: ', exc_info=True)
@@ -2554,6 +2554,17 @@ class sr_config:
                                 ( words1, known_runs, self.windows_run ) )
 
                         n = 2
+
+                elif words0 in [ 'xattr_disable', 'xattr_disabled', 'xd' ]   : # FIXME! what is this?
+                     if (words1 is None) or words[0][0:1] == '-' : 
+                        xattr_disabled = True
+                        n = 1
+                     else :
+                        xattr_disabled = self.isTrue(words[1])
+                        n = 2
+                     if xattr_disabled:
+                        self.logger.error("hoho! disabling xattr!")
+                        disable_xattr()
 
                 else :
                      # if unknown option is supplied, create a list for the values 
