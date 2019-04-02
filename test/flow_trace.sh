@@ -20,11 +20,11 @@ grep $1  $LOGDIR/sr_winnow*
 printf "\n\nFLOW f2x download to local mirror\n\n"
 grep $1  $LOGDIR/sr_sarra_* 
 
-printf "\n\nFLOW f30 downloading from http://localhost to downloaded_by_sub_amqp f3x\n\n"
+printf "\n\nFLOW f30 downloading from http://localhost to downloaded_by_sub_amqp f30\n\n"
 grep $1  $LOGDIR/sr_subscribe_amqp_f30_*.log*
 
-printf "\n\nFLOW f32 downloading from http://localhost to downloaded_by_sub_amqp f3x\n\n"
-#grep $1  $LOGDIR/sr_subscribe_mqtt_f32_*.log*
+printf "\n\nFLOW f32 downloading from http://localhost to downloaded_by_sub_mqtt f32\n\n"
+grep $1  $LOGDIR/sr_subscribe_mqtt_f32_*.log*
 
 printf "\n\nFLOW f4x watch\n\n"
 grep $1  $LOGDIR/sr_watch_f40_01.log*
