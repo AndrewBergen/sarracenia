@@ -181,7 +181,7 @@ class sr_config:
         defn = self.user_config_dir + os.sep + "credentials.conf"
         if not os.path.exists( defn ):
             with open( defn, 'w' ) as f: 
-                f.writelines( [ "amqps://anonymous:anonymous@dd.weather.gc.ca" ] )
+                f.writelines(["amqps://anonymous@hpfx.collab.science.gc.ca"])
 
         # hostname
 
