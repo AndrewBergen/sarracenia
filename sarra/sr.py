@@ -251,9 +251,8 @@ def main():
     # loop on all possible programs ... add audit
     programs = ['audit']
     programs.extend(cfg.programs)
-    for d in programs:
-        pgm = d
-        scandir(cfg.user_config_dir,pgm,action)
+    for pgm in programs:
+        scandir(cfg.user_config_dir, pgm, action)
 
     sys.exit(0)
 
