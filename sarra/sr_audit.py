@@ -198,11 +198,9 @@ class sr_audit(sr_instances):
         self.run_command(['sr','setup'])
 
     def verify_exchanges(self):
-        self.logger.debug("sr_audit verify_exchanges")
-
         # get exchanges name (a list of dictionnaries)
-
         lst_dict = rabbitmq_get_exchanges( self.admin, self.logger )
+        self.logger.info("sr_audit verify_exchanges, defined: %s" % lst_dict )
 
         # loop build list of exchanges of interest
         # empty or rabbitmq-server defaults 'amq.' are taken off
@@ -219,9 +217,7 @@ class sr_audit(sr_instances):
             if exchange in exchange_rab : continue
             exchange_lst.append(exchange)
 
-        self.logger.info("sr_audit verify_exchanges, defined: %s" % lst_dict )
-
-        for e in self.exchanges : 
+        for e in self.exchanges:
             if e in exchange_lst :
                exchange_lst.remove(e)
                continue
