@@ -112,7 +112,7 @@ def rabbitmq_add_user( url, role, user, passwd, logger  ):
     if role == 'subscribe':
        c="configure='^q_%s.*'"%user
        w="write='^q_%s.*|^xs_%s$'"%(user,user)
-       r="read='^q_%s.*|^x[lrs]_%s.*|^x.*public$'" % (user,user)
+       r="read='^q_%s.*|^x[lrs]_%s.*|^x.*public$'|amq.topic" % (user,user)
        logger.info("permission user '%s' role %s  %s %s %s " % (user,'source',c,w,r))
        declare = "declare permission vhost=/ user='%s' %s %s %s"%(user,c,w,r)
        dummy = run_rabbitmqadmin( url,declare,logger )
