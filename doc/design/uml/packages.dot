@@ -1,0 +1,10 @@
+digraph "packages" {
+charset="utf-8"
+rankdir=BT
+"0" [label="sarra.sr_poll", shape="box"];
+"1" [label="sarra.sr_post", shape="box"];
+"2" [label="sarra.sr_subscribe", shape="box"];
+"3" [label="sarra.sr_watch", shape="box"];
+"0" -> "1" [arrowhead="open", arrowtail="none"];
+"3" -> "1" [arrowhead="open", arrowtail="none"];
+}
