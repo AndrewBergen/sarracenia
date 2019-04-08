@@ -1,0 +1,30 @@
+@startuml
+participant ":sr" as sr
+participant "cfg:sr_instance" as cfg
+
+
+[o-> sr: scandir(cfg, pgm, action)
+activate sr
+
+alt (not configpath_exist) and pgm == 'audit'
+ sr -> cfg: run_command(['sr_' + pgm, action])
+ activate cfg
+ return
+else configpath_exist
+ loop confname in os.listdir(config_path)
+  alt len(confname) >= 5 and '.conf' in confname[-5:]
+   alt action in ['cleanup', 'declare', 'setup', 'remove']
+    sr -> sr: instantiate(cfg, pgm, confname, action)
+    activate sr
+    return
+   else
+    sr -> sr: invoke(cfg, pgm, confname, action)
+    activate sr
+    return
+   end alt
+  end alt
+ end loop
+end alt
+[<- sr
+deactivate sr
+@enduml

@@ -45,14 +45,6 @@ else
  loop pgm in ['audit'] + cfg.programs
   sr -> sr: scandir(cfg, pgm, action)
   activate sr
-   alt not config_exist and pgm == 'audit'
-    sr -> cfg: run_command('sr_audit', action)
-    activate cfg
-    return
-   else config_exist
-    loop all configs
-    end loop
-   end alt
   return
  end loop
 end alt

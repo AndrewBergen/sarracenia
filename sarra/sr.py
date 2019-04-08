@@ -32,6 +32,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #
 #
+import argparse
 import logging, os, os.path, shutil, sys, time
 
 try:
@@ -186,9 +187,9 @@ def scandir(cfg, pgm, action):
     :return:
     """
     config_path = cfg.user_config_dir + os.sep + pgm
-    configpath_exist = os.path.isdir(config_path) and len(os.listdir(config_path)) != 0
+    configpath_exist = os.path.isdir(config_path) and os.listdir(config_path)
 
-    if (not configpath_exist) and pgm == 'audit':
+    if not configpath_exist and pgm == 'audit':
         cfg.logger.info("sr_%s %s" % (pgm, action))
         cfg.run_command(['sr_' + pgm, action])
     elif configpath_exist:
@@ -208,59 +209,57 @@ def scandir(cfg, pgm, action):
 # ===================================
 
 def main():
-    # Uses sr_instances to get a good logger
-    cfg = sr_instances(args=sys.argv)
-
-    # actions supported
+    # Parsing args
     actions_supported = ['start', 'stop', 'status', 'sanity', 'restart', 'reload', 'remove',
                          'cleanup', 'declare', 'setup']
-
-    # actions extended (actions on config)
     actions_supported.extend(['list'])
+    parser = argparse.ArgumentParser(description='Sarracenia {}'.format(sarra.__version__))
+    parser.add_argument('action', metavar='action', choices=actions_supported,
+                        help='Action supported by sr: {}'.format(actions_supported))
+    parser.add_argument('-d', '--debug', action='store_true', help='Running in debug mode')
+    parser.add_argument('config', metavar='config', nargs='?',
+                        help='Only if the action is list: an empty config will list all configurations available, '
+                             '"plugin" keyword will list all plugins available and any other name will print '
+                             'the config file content if the file exists')
+    args = parser.parse_args()
 
-    # validate action
-    if len(sys.argv) == 1 or sys.argv[1] not in actions_supported:
-        print("USAGE: %s %s (version: %s) " % (sys.argv[0], '|'.join(actions_supported), sarra.__version__))
-        sys.exit(1)
-    elif len(sys.argv) == 2 or len(sys.argv) == 3 and sys.argv[2] == '-debug':
-        action = sys.argv[1]
-        config = None
-    elif len(sys.argv) > 3 and sys.argv[2] != '-debug':
-        action = sys.argv[1]
-        config = sys.argv[2]
+    # Uses sr_instances to get a good logger
+    if args.debug:
+        cfg = sr_instances(args=sys.argv)
     else:
-        action = sys.argv[1]
-        config = sys.argv[3]
+        cfg = sr_instances(args=sys.argv[:1])
+    cfg.build_instance(1)
 
     # Main switch
-    if action == 'list' and config and config == 'plugins':
+    if args.action == 'list' and args.config and args.config == 'plugins':
         # List plugins
         cfg.print_configdir("packaged plugins", cfg.package_dir + os.sep + 'plugins')
         cfg.print_configdir("user plugins", cfg.user_config_dir + os.sep + 'plugins')
-    elif action == 'list' and config:
+    elif args.action == 'list' and args.config:
         # Print config file content
-        result = cfg.find_conf_file(config)
+        result = cfg.find_conf_file(args.config)
         if not result:
-            print("no file named %s found in all sarra configs" % config)
+            cfg.logger.error("no file named %s found in all sarra configs" % args.config)
             sys.exit(1)
         cfg.list_file(result)
-    elif action == 'list':
+    elif args.action == 'list':
         # List all configs
         for pgm in sorted(cfg.programs):
             cfg.print_configdir("configuration examples", cfg.package_dir + os.sep + 'examples' + os.sep + pgm)
         cfg.print_configdir("general", cfg.user_config_dir)
         for pgm in sorted(cfg.programs):
             cfg.print_configdir("user configurations", cfg.user_config_dir + os.sep + pgm)
-    else:
+    elif args.action and not args.config:
         # Execute action on all configured processes
 
         # Init logger here
-        cfg.build_instance(1)
         cfg.setlog()
 
         # loop on all possible programs add audit at beginning
         for pgm in ['audit'] + cfg.programs:
-            scandir(cfg, pgm, action)
+            scandir(cfg, pgm, args.action)
+    else:
+        cfg.logger.error('Wrong argument: {}'.format(args.config))
 
 
 # =========================================
