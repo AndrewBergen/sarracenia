@@ -36,6 +36,7 @@ import argparse
 import logging, os, os.path, shutil, sys, time
 
 try:
+    from sr_audit import *
     from sr_config import *
     from sr_poll import *
     from sr_post import *
@@ -47,6 +48,7 @@ try:
     from sr_watch import *
     from sr_winnow import *
 except:
+    from sarra.sr_audit import *
     from sarra.sr_config import *
     from sarra.sr_poll import *
     from sarra.sr_post import *
@@ -60,139 +62,129 @@ except:
 
 
 def instantiate(cfg, pgm, confname, action):
-    """ Instantiate each program  with its configuration file
+    """ Instantiate and execute action on program using its configuration file
 
-    And invoke action if one of cleanup,declare,setup
+    Executing cleanup, declare, setup and remove actions on python program, but audit and c stuff
+    is a different case and require to spawn a call
 
-    :param cfg:
-    :param pgm:
-    :param confname:
-    :param action:
-    :return:
+    :param cfg: the instance providing the logger and the execution context
+    :param pgm: the name of the process to run
+    :param confname: the name of the configuration to use
+    :param action: the action to apply on the process
+    :return: None
     """
-    # c stuff always requiere to spawn a call
+    if pgm not in ['audit', 'cpost', 'cpump']:
+        config = re.sub(r'(\.conf)', '', confname)
+        orig = sys.argv[0]
+        sys.argv[0] = 'sr_' + pgm
 
-    if pgm in ['audit', 'cpost', 'cpump']:
+        try:
+            cfg.logger.debug("inst %s %s %s" % (pgm, config, action))
+            if pgm == 'poll':
+                inst = sr_poll(config, [action])
+            elif pgm == 'post':
+                inst = sr_post(config, [action])
+            elif pgm == 'sarra':
+                inst = sr_sarra(config, [action])
+            elif pgm == 'sender':
+                inst = sr_sender(config, [action])
+            elif pgm == 'shovel':
+                inst = sr_shovel(config, [action])
+            elif pgm == 'subscribe':
+                inst = sr_subscribe(config, [action])
+            elif pgm == 'watch':
+                inst = sr_watch(config, [action])
+            elif pgm == 'winnow':
+                inst = sr_winnow(config, [action])
+            elif pgm == 'report':
+                inst = sr_report(config, [action])
+            elif pgm == 'audit':
+                inst = sr_audit(config, [action])
+            else:
+                cfg.logger.error("code not configured for process type sr_%s" % pgm)
+                sys.exit(1)
+
+            inst.logger = cfg.logger
+
+            if action == 'cleanup':
+                inst.exec_action('cleanup', False)
+            elif action == 'declare':
+                inst.exec_action('declare', False)
+            elif action == 'setup':
+                inst.exec_action('setup', False)
+            elif action == 'remove':
+                inst.exec_action('remove', False)
+        except:
+            cfg.logger.error("could not instantiate and run sr_%s %s %s" % (pgm, action, confname))
+            cfg.logger.debug('Exception details: ', exc_info=True)
+            sys.exit(1)
+        finally:
+            sys.argv[0] = orig
+    elif action != 'sanity':
         # try to avoid error code while running sanity
-        if action == 'sanity': return
         cfg.logger.debug("%s %s %s" % ("sr_" + pgm, action, confname))
         cfg.run_command(["sr_" + pgm, action, confname])
-        return
-
-    config = re.sub(r'(\.conf)', '', confname)
-    orig = sys.argv[0]
-
-    sys.argv[0] = 'sr_' + pgm
-
-    try:
-        inst = None
-        cfg.logger.debug("inst %s %s %s" % (pgm, config, action))
-        if pgm == 'poll':
-            inst = sr_poll(config, [action])
-        elif pgm == 'post':
-            inst = sr_post(config, [action])
-        elif pgm == 'sarra':
-            inst = sr_sarra(config, [action])
-        elif pgm == 'sender':
-            inst = sr_sender(config, [action])
-        elif pgm == 'shovel':
-            inst = sr_shovel(config, [action])
-        elif pgm == 'subscribe':
-            inst = sr_subscribe(config, [action])
-        elif pgm == 'watch':
-            inst = sr_watch(config, [action])
-        elif pgm == 'winnow':
-            inst = sr_winnow(config, [action])
-        elif pgm == 'report':
-            inst = sr_report(config, [action])
-        elif pgm == 'audit':
-            inst = sr_audit(config, [action])
-        else:
-            cfg.logger.error("code not configured for process type sr_%s" % pgm)
-            sys.exit(1)
-
-        inst.logger = cfg.logger
-
-        if action == 'cleanup':
-            inst.exec_action('cleanup', False)
-        elif action == 'declare':
-            inst.exec_action('declare', False)
-        elif action == 'setup':
-            inst.exec_action('setup', False)
-
-        elif action == 'remove':
-            inst.exec_action('remove', False)
-
-        sys.argv[0] = orig
-
-    except:
-        cfg.logger.error("could not instantiate and run sr_%s %s %s" % (pgm, action, confname))
-        cfg.logger.debug('Exception details: ', exc_info=True)
-        sys.exit(1)
 
 
 def invoke(cfg, pgm, confname, action):
-    """ Invoke each program with its action and configuration file
+    """ Invoke a program as a process with its action and using its configuration file.
 
-    :param cfg:
-    :param pgm:
-    :param confname:
-    :param action:
-    :return:
+    sr_post is run as a special case needed
+
+    :param cfg: the instance providing the logger and the execution context
+    :param pgm: the name of the process to run
+    :param confname: the name of the configuration to use
+    :param action: the action to apply on the process
+    :return: None
     """
     program = 'sr_' + pgm
     config = re.sub(r'(\.conf)', '', confname)
-
-    # c does not implement action sanity yet
     cfg.logger.info("action %s" % action)
 
     try:
-        # anything but sr_post
         if program != 'sr_post':
-            cfg.logger.debug("%s %s %s" % (program, action, config))
+            # anything but sr_post
+            cfg.logger.debug("sr/invoke %s %s %s" % (program, action, config))
             cfg.run_command([program, action, config])
         else:
-            # sr_post needs -c with absolute confpath
             confpath = cfg.user_config_dir + os.sep + pgm + os.sep + confname
             sleeps = False
-            if (action == 'status'):
+            if action == 'status':
                 f = open(confpath, 'r')
-                for li in f.readlines():
-                    l = li.split()
-                    if len(l) < 2:
+                for line in f.readlines():
+                    tokens = line.split()
+                    if len(tokens) < 2:
                         continue
 
-                    if l[0] == 'sleep':
-                        if float(l[1]) > 0:
+                    if tokens[0] == 'sleep':
+                        if float(tokens[1]) > 0:
                             sleeps = True
                 f.close()
             if not sleeps:
-                return
-            post = sr_post(confpath)
-            cfg.logger.debug("INVOKE %s %s %s %s" % (program, '-c', confpath, action))
-            cfg.run_command([program, '-c', confpath, action])
+                # sr_post needs -c with absolute confpath
+                cfg.logger.debug("sr/invoke %s %s %s %s" % (program, '-c', confpath, action))
+                cfg.run_command([program, '-c', confpath, action])
     except:
         cfg.logger.error("Invoke failed")
         cfg.logger.debug('Exception details: ', exc_info=True)
 
 
 def scandir(cfg, pgm, action):
-    """ Recursive scan of ~/.config/sarra/* , invoking process according to
+    """ Recursive scan of ~/.config/sarra/*.
 
-    the process named from the parent directory
+    Always run sr_audit when provided (doesn't needs a config), instanciating a process on selected actions
+    (cleanup, declare and setup) and invoking the process in other cases. Process are named from the parent directory
+    (except for sr_audit).
 
-    :param cfg:
-    :param pgm:
-    :param action:
-    :return:
+    :param cfg: the instance providing the logger and the execution context
+    :param pgm: the name of the process to run
+    :param action: the action to apply on the process
+    :return: None
     """
     config_path = cfg.user_config_dir + os.sep + pgm
     configpath_exist = os.path.isdir(config_path) and os.listdir(config_path)
 
-    if not configpath_exist and pgm == 'audit':
-        cfg.logger.info("sr_%s %s" % (pgm, action))
-        cfg.run_command(['sr_' + pgm, action])
-    elif configpath_exist:
+    if configpath_exist:
         for confname in os.listdir(config_path):
             if len(confname) >= 5 and '.conf' in confname[-5:]:
                 cfg.logger.info("%s %s %s" % (pgm, action, confname))
@@ -200,6 +192,9 @@ def scandir(cfg, pgm, action):
                     instantiate(cfg, pgm, confname, action)
                 else:
                     invoke(cfg, pgm, confname, action)
+    elif pgm == 'audit':
+        cfg.logger.info("sr_%s %s" % (pgm, action))
+        cfg.run_command(['sr_' + pgm, action])
     else:
         cfg.logger.debug('No configuration found for sr_%s in %s' % (pgm, cfg.user_config_dir))
 
@@ -209,6 +204,13 @@ def scandir(cfg, pgm, action):
 # ===================================
 
 def main():
+    """ Start multiple Sarracenia configurations from this main entry point.
+
+    This function parses arguments accepted by this module, create a first logger as sr_instance
+    and then execute its main loop.
+
+    :return: None
+    """
     # Parsing args
     actions_supported = ['start', 'stop', 'status', 'sanity', 'restart', 'reload', 'remove',
                          'cleanup', 'declare', 'setup']
@@ -216,18 +218,16 @@ def main():
     parser = argparse.ArgumentParser(description='Sarracenia {}'.format(sarra.__version__))
     parser.add_argument('action', metavar='action', choices=actions_supported,
                         help='Action supported by sr: {}'.format(actions_supported))
-    parser.add_argument('-d', '--debug', action='store_true', help='Running in debug mode')
+    parser.add_argument('-d', '--debug', action='store_const', const=['-debug'], default=[],
+                        help='Running in debug mode')
     parser.add_argument('config', metavar='config', nargs='?',
-                        help='Only if the action is list: an empty config will list all configurations available, '
-                             '"plugin" keyword will list all plugins available and any other name will print '
-                             'the config file content if the file exists')
+                        help='"list": list all configurations available, '
+                             '"list plugins": list all plugins available, '
+                             '"list <my_config.conf>": print content of <my_config.conf> file if the file exists')
     args = parser.parse_args()
 
     # Uses sr_instances to get a good logger
-    if args.debug:
-        cfg = sr_instances(args=sys.argv)
-    else:
-        cfg = sr_instances(args=sys.argv[:1])
+    cfg = sr_instances(args=sys.argv[:1] + args.debug)
     cfg.build_instance(1)
 
     # Main switch
@@ -250,8 +250,6 @@ def main():
         for pgm in sorted(cfg.programs):
             cfg.print_configdir("user configurations", cfg.user_config_dir + os.sep + pgm)
     elif args.action and not args.config:
-        # Execute action on all configured processes
-
         # Init logger here
         cfg.setlog()
 
