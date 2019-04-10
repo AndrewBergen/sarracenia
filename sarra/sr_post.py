@@ -1178,15 +1178,19 @@ class sr_post(sr_instances):
         # walk src directory, this walk is depth first... there could be a lot of time
         # between *listdir* run, and when a file is visited, if there are subdirectories before you get there.
         # hence the existence check after listdir (crashed in flow_tests of > 20,000)
-        for x in os.listdir(src):
-            path = src + '/' + x
-            if os.path.isdir(path):
-               self.walk(path)
-               continue
+        try:
+            for x in os.listdir(src):
+                path = src + '/' + x
+                if os.path.isdir(path):
+                   self.walk(path)
+                   continue
 
-            # add path created
-            if os.path.exists(path):
-                self.post1file(path,os.stat(path))
+                # add path created
+                if os.path.exists(path):
+                    self.post1file(path,os.stat(path))
+        except FileNotFoundError as e:
+            self.logger.error('sr_post/walk {}'.format(e))
+            self.logger.debug('Exception details:', exc_info=True)
 
     # =============
     # original walk_priming

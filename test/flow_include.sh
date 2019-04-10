@@ -287,10 +287,10 @@ function countall {
   countthem "`grep 'file_log downloaded ' $LOGDIR/sr_subscribe_cfile_f44_*.log* | grep -v DEBUG | wc -l`"
   totcfile="${tot}"
 
-  sumlogs post_total $LOGDIR/sr_shovel_pclean_f90*.log
+  sumlogs post_total: $LOGDIR/sr_shovel_pclean_f90*.log*
   totpropagated="${tot}"
 
-  sumlogs post_total $LOGDIR/sr_shovel_pclean_f92*.log
+  sumlogs post_total: $LOGDIR/sr_shovel_pclean_f92*.log*
   totremoved="${tot}"
 
   # flags when two lines include *msg_log received* (with no other message between them) indicating no user will know what happenned.
