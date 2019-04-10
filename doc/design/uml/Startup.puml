@@ -1,0 +1,61 @@
+@startuml
+participant ":sr" as sr
+participant "cfg:sr_instance" as cfg
+
+
+[o-> sr: main()
+activate sr
+sr -> cfg ** : create
+
+alt list all plugins
+ sr -> cfg: print_configdir('packaged plugins')
+ activate cfg
+ return
+ sr -> cfg: print_configdir('user plugins')
+ activate cfg
+ return
+else print config file content
+ sr -> cfg: find_conf_file(config)
+ activate cfg
+ return result
+ sr -> cfg: list_file(result)
+ activate cfg
+ return
+else list all configs
+ loop d in sorted(cfg.programs)
+  sr -> cfg: print_configdir('configuration examples')
+  activate cfg
+  return
+ end loop
+ sr -> cfg: print_configdir('general')
+ activate cfg
+ return
+ loop d in sorted(cfg.programs)
+  sr -> cfg: print_configdir('user configurations')
+  activate cfg
+  return
+ end loop
+else
+ sr -> cfg: build_instance(1)
+ activate cfg
+ return
+ sr -> cfg: setlog()
+ activate cfg
+ return
+ loop pgm in ['audit'] + cfg.programs
+  sr -> sr: scandir(cfg, pgm, action)
+  activate sr
+   alt not config_exist and pgm == 'audit'
+    sr -> cfg: run_command('sr_audit', action)
+    activate cfg
+    return
+   else config_exist
+    loop all configs
+    end loop
+   end alt
+  return
+ end loop
+end alt
+deactivate sr
+
+@enduml
