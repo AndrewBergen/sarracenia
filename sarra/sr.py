@@ -178,9 +178,9 @@ def scandir(cfg, pgm, action):
     :return: None
     """
     config_path = cfg.user_config_dir + os.sep + pgm
-    configpath_exist = os.path.isdir(config_path) and os.listdir(config_path)
 
-    if configpath_exist:
+    if os.path.isdir(config_path) and os.listdir(config_path):
+        # The config path exist
         for confname in os.listdir(config_path):
             if len(confname) >= 5 and '.conf' in confname[-5:]:
                 cfg.logger.info("%s %s %s" % (pgm, action, confname))
@@ -189,9 +189,11 @@ def scandir(cfg, pgm, action):
                 else:
                     invoke(cfg, pgm, confname, action)
     elif pgm == 'audit':
+        # The config path doesn't exist but we launch sr_audit
         cfg.logger.info("sr_%s %s" % (pgm, action))
         cfg.run_command(['sr_' + pgm, action])
     else:
+        # Debug msg if we got neither of the possible cases (might be useful)
         cfg.logger.debug('No configuration found for sr_%s in %s' % (pgm, cfg.user_config_dir))
 
 
@@ -253,7 +255,8 @@ def main():
         for pgm in ['audit'] + cfg.programs:
             scandir(cfg, pgm, args.action)
     else:
-        cfg.logger.error('Wrong argument: {}'.format(args.config))
+        # A wrong argument unhandled by argparse
+        cfg.logger.error('Cannot apply config ({}) on action ({}) here'.format(args.config, args.action))
 
 
 # =========================================
