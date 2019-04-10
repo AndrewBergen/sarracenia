@@ -33,7 +33,7 @@
 #
 #
 import argparse
-import logging, os, os.path, shutil, sys, time
+import os, os.path, sys
 
 try:
     from sr_audit import *
@@ -153,12 +153,8 @@ def invoke(cfg, pgm, confname, action):
                 f = open(confpath, 'r')
                 for line in f.readlines():
                     tokens = line.split()
-                    if len(tokens) < 2:
-                        continue
-
-                    if tokens[0] == 'sleep':
-                        if float(tokens[1]) > 0:
-                            sleeps = True
+                    if len(tokens) >= 2 and tokens[0] == 'sleep' and float(tokens[1]) > 0:
+                        sleeps = True
                 f.close()
             if not sleeps:
                 # sr_post needs -c with absolute confpath
