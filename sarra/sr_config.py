@@ -232,7 +232,8 @@ class sr_config:
         if config and config.startswith('http:') :
            urlstr = config
            name   = os.path.basename(config)
-           if not name.endswith('.conf') : name += '.conf'
+           if not re.search(r'\.conf$|\.inc$', name):
+               name += '.conf'
            path   = self.user_config_dir + os.sep + self.program_dir + os.sep + name
            ok = self.wget_config(urlstr,path,remote_config_url=True)
            config = name
@@ -243,7 +244,8 @@ class sr_config:
            mandatory = True
            if action in ['add','edit','enable','remove','rename']: mandatory = False
            usr_cfg = config
-           if not config.endswith('.conf') : usr_cfg += '.conf'
+           if not re.search(r'\.conf$|\.inc$', config):
+               usr_cfg += '.conf'
            cdir = os.path.dirname(usr_cfg)
            if cdir and cdir != '' : self.config_dir = cdir.split(os.sep)[-1]
            self.config_name = re.sub(r'(\.conf)','',os.path.basename(usr_cfg))
@@ -769,6 +771,7 @@ class sr_config:
         self.reportback           = True
         self.restore              = False
         self.restore_queue        = None
+        self.sr_remove = False
 
         self.save                 = False
         self.save_file            = None
@@ -2420,11 +2423,19 @@ class sr_config:
                      n = 2
 
                 elif words0 in ['set_passwords']:  # See: sr_consumer.1
-                     if (words1 is None) or words[0][0:1] == '-' : 
+                     if (words1 is None) or words[0][0:1] == '-' :
                         self.set_passwords = True
                         n = 1
                      else :
                         self.set_passwords = self.isTrue(words[1])
+                        n = 2
+
+                elif words0 in ['sr_remove']:  # See: sr_consumer.1
+                     if (words1 is None) or words[0][0:1] == '-' :
+                        self.sr_remove = True
+                        n = 1
+                     else :
+                        self.sr_remove = self.isTrue(words[1])
                         n = 2
 
                 elif words0 == 'sleep': # See: sr_audit.8 sr_poll.1

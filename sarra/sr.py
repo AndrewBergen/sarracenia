@@ -79,7 +79,7 @@ def instantiate(cfg, pgm, confname, action):
         sys.argv[0] = 'sr_' + pgm
 
         try:
-            cfg.logger.debug("inst %s %s %s" % (pgm, config, action))
+            cfg.logger.debug("sr_%s %s %s" % (pgm, action, config))
             if pgm == 'poll':
                 inst = sr_poll(config, [action])
             elif pgm == 'post':
@@ -112,8 +112,6 @@ def instantiate(cfg, pgm, confname, action):
                 inst.exec_action('declare', False)
             elif action == 'setup':
                 inst.exec_action('setup', False)
-            elif action == 'remove':
-                inst.exec_action('remove', False)
         except:
             cfg.logger.error("could not instantiate and run sr_%s %s %s" % (pgm, action, confname))
             cfg.logger.debug('Exception details: ', exc_info=True)
@@ -122,7 +120,7 @@ def instantiate(cfg, pgm, confname, action):
             sys.argv[0] = orig
     elif action != 'sanity':
         # try to avoid error code while running sanity
-        cfg.logger.debug("%s %s %s" % ("sr_" + pgm, action, confname))
+        cfg.logger.debug("sr_%s %s %s" % (pgm, action, confname))
         cfg.run_command(["sr_" + pgm, action, confname])
 
 
@@ -139,12 +137,11 @@ def invoke(cfg, pgm, confname, action):
     """
     program = 'sr_' + pgm
     config = re.sub(r'(\.conf)', '', confname)
-    cfg.logger.info("action %s" % action)
 
     try:
         if program != 'sr_post':
             # anything but sr_post
-            cfg.logger.debug("sr/invoke %s %s %s" % (program, action, config))
+            cfg.logger.debug("%s %s %s" % (program, action, config))
             cfg.run_command([program, action, config])
         else:
             confpath = cfg.user_config_dir + os.sep + pgm + os.sep + confname
@@ -158,7 +155,7 @@ def invoke(cfg, pgm, confname, action):
                 f.close()
             if not sleeps:
                 # sr_post needs -c with absolute confpath
-                cfg.logger.debug("sr/invoke %s %s %s %s" % (program, '-c', confpath, action))
+                cfg.logger.debug("%s %s %s %s" % (program, '-c', confpath, action))
                 cfg.run_command([program, '-c', confpath, action])
     except:
         cfg.logger.error("Invoke failed")
@@ -180,14 +177,15 @@ def scandir(cfg, pgm, action):
     config_path = cfg.user_config_dir + os.sep + pgm
 
     if os.path.isdir(config_path) and os.listdir(config_path):
+        cfg.logger.info("{} {}".format(config_path, action))
         # The config path exist
         for confname in os.listdir(config_path):
-            if len(confname) >= 5 and '.conf' in confname[-5:]:
-                cfg.logger.info("%s %s %s" % (pgm, action, confname))
-                if action in ['cleanup', 'declare', 'setup']:
-                    instantiate(cfg, pgm, confname, action)
-                else:
-                    invoke(cfg, pgm, confname, action)
+            is_config = len(confname) >= 5 and '.conf' in confname[-5:]
+            is_include = len(confname) >= 4 and '.inc' in confname[-4:]
+            if is_config and action in ['cleanup', 'declare', 'setup']:
+                instantiate(cfg, pgm, confname, action)
+            elif is_config or is_include and action == 'remove':
+                invoke(cfg, pgm, confname, action)
     elif pgm == 'audit':
         # The config path doesn't exist but we launch sr_audit
         cfg.logger.info("sr_%s %s" % (pgm, action))
@@ -251,8 +249,11 @@ def main():
     elif not args.config:
         # Executing other actions than list
         cfg.setlog()
-        for pgm in ['audit'] + cfg.programs:
-            scandir(cfg, pgm, args.action)
+        if args.action != 'remove' or cfg.sr_remove:
+            for pgm in ['audit'] + cfg.programs:
+                scandir(cfg, pgm, args.action)
+        else:
+            cfg.logger.info("Command: 'sr {}' is not allowed".format(args.action))
     else:
         # A wrong argument unhandled by argparse (yet)
         cfg.logger.error('Action ({}) does not support a config argument'.format(args.action))
