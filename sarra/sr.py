@@ -210,8 +210,8 @@ def main():
     :return: None
     """
     # Parsing args
-    actions_supported = ['start', 'stop', 'status', 'sanity', 'restart', 'reload', 'remove',
-                         'cleanup', 'declare', 'setup']
+    actions_supported = ['start', 'stop', 'status', 'sanity', 'restart', 'reload']
+    actions_supported.extend(['remove', 'cleanup', 'declare', 'setup'])
     actions_supported.extend(['list'])
     parser = argparse.ArgumentParser(description='Sarracenia {}'.format(sarra.__version__))
     parser.add_argument('action', metavar='action', choices=actions_supported,
