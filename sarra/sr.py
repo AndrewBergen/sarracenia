@@ -219,7 +219,8 @@ def main():
     parser.add_argument('-d', '--debug', action='store_const', const=['-debug'], default=[],
                         help='Running in debug mode')
     parser.add_argument('config', metavar='config', nargs='?',
-                        help='Config only supported with "list" action. "list": list all configurations available, '
+                        help='Config is only supported with a "list" action. '
+                             '"list": list all configurations available, '
                              '"list plugins": list all plugins available, '
                              '"list <my_config.conf>": print content of <my_config.conf> file if the file exists')
     args = parser.parse_args()
@@ -247,15 +248,14 @@ def main():
         cfg.print_configdir("general", cfg.user_config_dir)
         for pgm in sorted(cfg.programs):
             cfg.print_configdir("user configurations", cfg.user_config_dir + os.sep + pgm)
-    elif args.action and not args.config:
-        # Init logger here
+    elif not args.config:
+        # Executing other actions than list
         cfg.setlog()
-
-        # loop on all possible programs add audit at beginning
         for pgm in ['audit'] + cfg.programs:
             scandir(cfg, pgm, args.action)
     else:
-        # A wrong argument unhandled by argparse
+        # A wrong argument unhandled by argparse (yet)
+        cfg.logger.error('Action ({}) does not support a config argument'.format(args.action))
         parser.print_help()
         sys.exit(1)
 
