@@ -732,7 +732,7 @@ def main():
     elif action == 'cleanup'    : audit.cleanup()
     elif action == 'declare'    : audit.declare()
     elif action == 'setup'      : audit.setup()
-    elif action == 'remove'     : pass  # not implemented yet
+    elif action == 'remove'     : audit.logger.warning('action not implemented: {}'.format(action))
     else :
            audit.logger.error("action unknown %s" % action)
            os._exit(1)

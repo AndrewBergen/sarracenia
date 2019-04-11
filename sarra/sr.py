@@ -190,9 +190,6 @@ def scandir(cfg, pgm, action):
         # The config path doesn't exist but we launch sr_audit
         cfg.logger.info("sr_%s %s" % (pgm, action))
         cfg.run_command(['sr_' + pgm, action])
-    else:
-        # Debug msg if we got neither of the possible cases (might be useful)
-        cfg.logger.debug('No configuration found for sr_%s in %s' % (pgm, cfg.user_config_dir))
 
 
 # ===================================
