@@ -219,7 +219,7 @@ def main():
     parser.add_argument('-d', '--debug', action='store_const', const=['-debug'], default=[],
                         help='Running in debug mode')
     parser.add_argument('config', metavar='config', nargs='?',
-                        help='"list": list all configurations available, '
+                        help='Config only supported with "list" action. "list": list all configurations available, '
                              '"list plugins": list all plugins available, '
                              '"list <my_config.conf>": print content of <my_config.conf> file if the file exists')
     args = parser.parse_args()
@@ -256,8 +256,8 @@ def main():
             scandir(cfg, pgm, args.action)
     else:
         # A wrong argument unhandled by argparse
-        cfg.logger.error('Cannot apply config ({}) on action ({}) here'.format(args.config, args.action))
-
+        parser.print_help()
+        sys.exit(1)
 
 # =========================================
 # direct invocation
