@@ -6,6 +6,9 @@ participant "cfg:sr_instance" as cfg
 [o-> sr: main()
 activate sr
 sr -> cfg ** : create
+sr -> cfg: build_instance(1)
+activate cfg
+return
 
 alt list all plugins
  sr -> cfg: print_configdir('packaged plugins')
@@ -36,9 +39,6 @@ else list all configs
   return
  end loop
 else
- sr -> cfg: build_instance(1)
- activate cfg
- return
  sr -> cfg: setlog()
  activate cfg
  return
