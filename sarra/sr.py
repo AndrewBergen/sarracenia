@@ -33,32 +33,34 @@
 #
 #
 import argparse
-import os, os.path, sys
+import os, os.path, sys, re
+import sarra
 
 try:
-    from sr_audit import *
-    from sr_config import *
-    from sr_poll import *
-    from sr_post import *
-    from sr_report import *
-    from sr_sarra import *
-    from sr_sender import *
-    from sr_shovel import *
-    from sr_subscribe import *
-    from sr_watch import *
-    from sr_winnow import *
+    from sr_audit import sr_audit
+    from sr_config import sr_config
+    from sr_instances import sr_instances
+    from sr_poll import sr_poll
+    from sr_post import sr_post
+    from sr_report import sr_report
+    from sr_sarra import sr_sarra
+    from sr_sender import sr_sender
+    from sr_shovel import sr_shovel
+    from sr_subscribe import sr_subscribe
+    from sr_watch import sr_watch
+    from sr_winnow import sr_winnow
 except:
-    from sarra.sr_audit import *
-    from sarra.sr_config import *
-    from sarra.sr_poll import *
-    from sarra.sr_post import *
-    from sarra.sr_report import *
-    from sarra.sr_sarra import *
-    from sarra.sr_sender import *
-    from sarra.sr_shovel import *
-    from sarra.sr_subscribe import *
-    from sarra.sr_watch import *
-    from sarra.sr_winnow import *
+    from sarra.sr_config import sr_config
+    from sarra.sr_instances import sr_instances
+    from sarra.sr_poll import sr_poll
+    from sarra.sr_post import sr_post
+    from sarra.sr_report import sr_report
+    from sarra.sr_sarra import sr_sarra
+    from sarra.sr_sender import sr_sender
+    from sarra.sr_shovel import sr_shovel
+    from sarra.sr_subscribe import sr_subscribe
+    from sarra.sr_watch import sr_watch
+    from sarra.sr_winnow import sr_winnow
 
 
 def instantiate(cfg, pgm, confname, action):
