@@ -116,7 +116,9 @@ def instantiate(cfg, pgm, config_name, action):
 def invoke(cfg, pgm, config_name, action):
     """ Invoke a program as a process with its action and using its configuration file.
 
-    sr_post is run as a special case needed on status action when it is set to sleep
+    sr_post is run as a special case needed on status action when it is set to sleep, this is because
+    sr_post is not a daemon contrarily to other process and we run it only if the action is status
+    and there is no sleep defined in config.
 
     :param cfg: the instance providing the logger and the execution context
     :param pgm: the name of the process to run
@@ -134,7 +136,6 @@ def invoke(cfg, pgm, config_name, action):
         confpath = cfg.user_config_dir + os.sep + pgm + os.sep + config_name
         sleeps = False
         if action == 'status':
-            # FIXME what is the uses of that sleep option here ??
             try:
                 f = open(confpath, 'r')
                 for line in f.readlines():
@@ -149,8 +150,6 @@ def invoke(cfg, pgm, config_name, action):
             # sr_post needs -c with absolute confpath
             cfg.logger.debug("%s %s %s %s" % (program, '-c', confpath, action))
             cfg.run_command([program, '-c', confpath, action])
-        else:
-            cfg.logger.info("Not invoking sr_post because sleep is not set: {}".format(confpath))
 
 
 def scandir(cfg, pgm, action):
