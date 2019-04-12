@@ -1,5 +1,5 @@
 @startuml
-participant ":sr" as sr
+participant "sr.py" as sr
 participant "cfg:sr_instance" as cfg
 participant "inst:sr_<pgm>" as inst
 
