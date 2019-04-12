@@ -171,8 +171,8 @@ def scandir(cfg, pgm, action):
         cfg.logger.info("{} {}".format(config_path, action))
         # The config path exist
         for confname in os.listdir(config_path):
-            is_config = len(confname) >= 5 and '.conf' in confname[-5:]
-            is_include = len(confname) >= 4 and '.inc' in confname[-4:]
+            is_config = validate_extension(confname, '.conf')
+            is_include = validate_extension(confname, '.inc')
             if is_config and action in ['cleanup', 'declare', 'setup']:
                 instantiate(cfg, pgm, confname, action)
             elif is_config or is_include and action == 'remove':
@@ -181,6 +181,10 @@ def scandir(cfg, pgm, action):
         # The config path doesn't exist but we launch sr_audit
         cfg.logger.info("sr_%s %s" % (pgm, action))
         cfg.run_command(['sr_' + pgm, action])
+
+
+def validate_extension(confname, ext):
+    return len(confname) > len(ext) and ext in confname[-(len(ext)+1):]
 
 
 # ===================================
