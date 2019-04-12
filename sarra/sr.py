@@ -78,8 +78,8 @@ def instantiate(cfg, pgm, confname, action):
     if pgm not in ['audit', 'cpost', 'cpump']:
         config = re.sub(r'(\.conf)', '', confname)
         orig = sys.argv[0]
+        # FIXME this seems a wrong thing to do (changing prog name so that underlying instances reparse args)
         sys.argv[0] = 'sr_' + pgm
-
         try:
             cfg.logger.debug("sr_%s %s %s" % (pgm, action, config))
             if pgm == 'poll':
@@ -98,29 +98,16 @@ def instantiate(cfg, pgm, confname, action):
                 inst = sr_watch(config, [action])
             elif pgm == 'winnow':
                 inst = sr_winnow(config, [action])
-            elif pgm == 'report':
-                inst = sr_report(config, [action])
-            elif pgm == 'audit':
-                inst = sr_audit(config, [action])
             else:
-                cfg.logger.error("code not configured for process type sr_%s" % pgm)
-                sys.exit(1)
-
+                inst = sr_report(config, [action])
             inst.logger = cfg.logger
-
-            if action == 'cleanup':
-                inst.exec_action('cleanup', False)
-            elif action == 'declare':
-                inst.exec_action('declare', False)
-            elif action == 'setup':
-                inst.exec_action('setup', False)
+            inst.exec_action(action, False)
         except:
             cfg.logger.error("could not instantiate and run sr_%s %s %s" % (pgm, action, confname))
             cfg.logger.debug('Exception details: ', exc_info=True)
             sys.exit(1)
-        finally:
-            sys.argv[0] = orig
-    elif action != 'sanity':
+        sys.argv[0] = orig
+    else:
         # try to avoid error code while running sanity
         cfg.logger.debug("sr_%s %s %s" % (pgm, action, confname))
         cfg.run_command(["sr_" + pgm, action, confname])
