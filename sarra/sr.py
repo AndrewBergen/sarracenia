@@ -221,7 +221,7 @@ def main():
 
     # Main switch
     if args.action == 'list' and args.config and args.config == 'plugins':
-        # List plugins
+        # List all plugins
         cfg.print_configdir("packaged plugins", cfg.package_dir + os.sep + 'plugins')
         cfg.print_configdir("user plugins", cfg.user_config_dir + os.sep + 'plugins')
     elif args.action == 'list' and args.config:
@@ -251,6 +251,7 @@ def main():
         cfg.logger.error('Action ({}) does not support a config argument'.format(args.action))
         parser.print_help()
         sys.exit(1)
+
 
 # =========================================
 # direct invocation

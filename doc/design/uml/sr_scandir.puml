@@ -1,29 +1,49 @@
 @startuml
 participant ":sr" as sr
 participant "cfg:sr_instance" as cfg
+participant "inst:sr_<pgm>" as inst
 
 
 [o-> sr: scandir(cfg, pgm, action)
 activate sr
 
-alt (not configpath_exist) and pgm == 'audit'
+alt isdir(config_path) and listdir(config_path)
+ loop confname in listdir(config_path)
+  alt is_config(confname) and action in ['cleanup', 'declare', 'setup']
+    sr -> sr: instantiate(cfg, pgm, confname, action)
+    activate sr
+    alt pgm not in ['audit', 'cpost', 'cpump']
+     create inst
+     sr -> inst
+     sr -> inst: exec_action(action, False)
+     activate inst
+     return
+    else
+     sr -> cfg: run_command(["sr_" + pgm, action, confname])
+     activate cfg
+     return
+    end alt
+    return
+  else is_config or is_include and action == 'remove'
+    sr -> sr: invoke(cfg, pgm, confname, action)
+    activate sr
+    alt program != 'sr_post'
+     sr -> cfg: run_command([program, action, config])
+     activate cfg
+     return
+    else action == 'status' and sleeps
+     sr -> cfg: run_command([program, '-c', confpath, action])
+     activate cfg
+     return
+    end alt
+    return
+
+  end alt
+ end loop
+else pgm == 'audit'
  sr -> cfg: run_command(['sr_' + pgm, action])
  activate cfg
  return
-else configpath_exist
- loop confname in os.listdir(config_path)
-  alt len(confname) >= 5 and '.conf' in confname[-5:]
-   alt action in ['cleanup', 'declare', 'setup', 'remove']
-    sr -> sr: instantiate(cfg, pgm, confname, action)
-    activate sr
-    return
-   else
-    sr -> sr: invoke(cfg, pgm, confname, action)
-    activate sr
-    return
-   end alt
-  end alt
- end loop
 end alt
 [<- sr
 deactivate sr
