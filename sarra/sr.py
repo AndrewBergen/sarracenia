@@ -63,7 +63,7 @@ except:
     from sarra.sr_winnow import sr_winnow
 
 
-def instantiate(cfg, pgm, confname, action):
+def instantiate(cfg, pgm, config_name, action):
     """ Instantiate and execute action on program using its configuration file
 
     Executing cleanup, declare, setup and remove actions on python program, but audit and c stuff
@@ -71,12 +71,12 @@ def instantiate(cfg, pgm, confname, action):
 
     :param cfg: the instance providing the logger and the execution context
     :param pgm: the name of the process to run
-    :param confname: the name of the configuration to use
+    :param config_name: the name of the configuration to use
     :param action: the action to apply on the process
     :return: None
     """
     if pgm not in ['audit', 'cpost', 'cpump']:
-        config = re.sub(r'(\.conf)', '', confname)
+        config = re.sub(r'(\.conf)', '', config_name)
         orig = sys.argv[0]
         # FIXME this seems a wrong thing to do (changing prog name so that underlying instances reparse args)
         sys.argv[0] = 'sr_' + pgm
@@ -103,35 +103,35 @@ def instantiate(cfg, pgm, confname, action):
             inst.logger = cfg.logger
             inst.exec_action(action, False)
         except:
-            cfg.logger.error("could not instantiate and run sr_%s %s %s" % (pgm, action, confname))
+            cfg.logger.error("could not instantiate and run sr_%s %s %s" % (pgm, action, config_name))
             cfg.logger.debug('Exception details: ', exc_info=True)
             sys.exit(1)
         sys.argv[0] = orig
     else:
         # try to avoid error code while running sanity
-        cfg.logger.debug("sr_%s %s %s" % (pgm, action, confname))
-        cfg.run_command(["sr_" + pgm, action, confname])
+        cfg.logger.debug("sr_%s %s %s" % (pgm, action, config_name))
+        cfg.run_command(["sr_" + pgm, action, config_name])
 
 
-def invoke(cfg, pgm, confname, action):
+def invoke(cfg, pgm, config_name, action):
     """ Invoke a program as a process with its action and using its configuration file.
 
     sr_post is run as a special case needed on status action when it is set to sleep
 
     :param cfg: the instance providing the logger and the execution context
     :param pgm: the name of the process to run
-    :param confname: the name of the configuration to use
+    :param config_name: the name of the configuration to use
     :param action: the action to apply on the process
     :return: None
     """
     program = 'sr_' + pgm
-    config = re.sub(r'(\.conf)', '', confname)
+    config = re.sub(r'(\.conf)', '', config_name)
 
     if program != 'sr_post':
         cfg.logger.debug("%s %s %s" % (program, action, config))
         cfg.run_command([program, action, config])
     else:
-        confpath = cfg.user_config_dir + os.sep + pgm + os.sep + confname
+        confpath = cfg.user_config_dir + os.sep + pgm + os.sep + config_name
         sleeps = False
         if action == 'status':
             # FIXME what is the uses of that sleep option here ??
@@ -170,21 +170,21 @@ def scandir(cfg, pgm, action):
     if os.path.isdir(config_path) and os.listdir(config_path):
         cfg.logger.info("{} {}".format(config_path, action))
         # The config path exist
-        for confname in os.listdir(config_path):
-            is_config = validate_extension(confname, '.conf')
-            is_include = validate_extension(confname, '.inc')
+        for config_name in os.listdir(config_path):
+            is_config = validate_extension(config_name, '.conf')
+            is_include = validate_extension(config_name, '.inc')
             if is_config and action in ['cleanup', 'declare', 'setup']:
-                instantiate(cfg, pgm, confname, action)
+                instantiate(cfg, pgm, config_name, action)
             elif is_config or is_include and action == 'remove':
-                invoke(cfg, pgm, confname, action)
+                invoke(cfg, pgm, config_name, action)
     elif pgm == 'audit':
         # The config path doesn't exist but we launch sr_audit
         cfg.logger.info("sr_%s %s" % (pgm, action))
         cfg.run_command(['sr_' + pgm, action])
 
 
-def validate_extension(confname, ext):
-    return len(confname) > len(ext) and ext in confname[-(len(ext)+1):]
+def validate_extension(config_name, ext):
+    return len(config_name) > len(ext) and ext in config_name[-(len(ext) + 1):]
 
 
 # ===================================

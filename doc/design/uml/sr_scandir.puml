@@ -8,9 +8,9 @@ participant "inst:sr_<pgm>" as inst
 activate sr
 
 alt isdir(config_path) and listdir(config_path)
- loop confname in listdir(config_path)
-  alt is_config(confname) and action in ['cleanup', 'declare', 'setup']
-    sr -> sr: instantiate(cfg, pgm, confname, action)
+ loop config_name in listdir(config_path)
+  alt is_config(config_name) and action in ['cleanup', 'declare', 'setup']
+    sr -> sr: instantiate(cfg, pgm, config_name, action)
     activate sr
     alt pgm not in ['audit', 'cpost', 'cpump']
      create inst
@@ -19,13 +19,13 @@ alt isdir(config_path) and listdir(config_path)
      activate inst
      return
     else
-     sr -> cfg: run_command(["sr_" + pgm, action, confname])
+     sr -> cfg: run_command(["sr_" + pgm, action, config_name])
      activate cfg
      return
     end alt
     return
   else is_config or is_include and action == 'remove'
-    sr -> sr: invoke(cfg, pgm, confname, action)
+    sr -> sr: invoke(cfg, pgm, config_name, action)
     activate sr
     alt program != 'sr_post'
      sr -> cfg: run_command([program, action, config])
