@@ -116,7 +116,7 @@ def instantiate(cfg, pgm, confname, action):
 def invoke(cfg, pgm, confname, action):
     """ Invoke a program as a process with its action and using its configuration file.
 
-    sr_post is run as a special case needed
+    sr_post is run as a special case needed on status action when it is set to sleep
 
     :param cfg: the instance providing the logger and the execution context
     :param pgm: the name of the process to run
@@ -127,28 +127,30 @@ def invoke(cfg, pgm, confname, action):
     program = 'sr_' + pgm
     config = re.sub(r'(\.conf)', '', confname)
 
-    try:
-        if program != 'sr_post':
-            # anything but sr_post
-            cfg.logger.debug("%s %s %s" % (program, action, config))
-            cfg.run_command([program, action, config])
-        else:
-            confpath = cfg.user_config_dir + os.sep + pgm + os.sep + confname
-            sleeps = False
-            if action == 'status':
+    if program != 'sr_post':
+        cfg.logger.debug("%s %s %s" % (program, action, config))
+        cfg.run_command([program, action, config])
+    else:
+        confpath = cfg.user_config_dir + os.sep + pgm + os.sep + confname
+        sleeps = False
+        if action == 'status':
+            # FIXME what is the uses of that sleep option here ??
+            try:
                 f = open(confpath, 'r')
                 for line in f.readlines():
                     tokens = line.split()
                     if len(tokens) >= 2 and tokens[0] == 'sleep' and float(tokens[1]) > 0:
                         sleeps = True
                 f.close()
-            if not sleeps:
-                # sr_post needs -c with absolute confpath
-                cfg.logger.debug("%s %s %s %s" % (program, '-c', confpath, action))
-                cfg.run_command([program, '-c', confpath, action])
-    except:
-        cfg.logger.error("Invoke failed")
-        cfg.logger.debug('Exception details: ', exc_info=True)
+            except OSError as err:
+                cfg.logger.error("Cannot open file: {}".format(confpath))
+                cfg.logger.debug('Exception details: ', exc_info=True)
+        if sleeps:
+            # sr_post needs -c with absolute confpath
+            cfg.logger.debug("%s %s %s %s" % (program, '-c', confpath, action))
+            cfg.run_command([program, '-c', confpath, action])
+        else:
+            cfg.logger.info("Not invoking sr_post because sleep is not set: {}".format(confpath))
 
 
 def scandir(cfg, pgm, action):
