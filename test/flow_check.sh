@@ -2,6 +2,8 @@
 
 . ./flow_include.sh
 
+eval `application_dirs`
+
 countall
 
 # PAS performance summaries

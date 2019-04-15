@@ -1,32 +1,6 @@
 #!/bin/bash
 
-if [[ ":$SARRA_LIB/../:" != *":$PYTHONPATH:"* ]]; then
-    if [ "${PYTHONPATH:${#PYTHONPATH}-1}" == ":" ]; then
-        export PYTHONPATH="$PYTHONPATH$SARRA_LIB/../"
-    else 
-        export PYTHONPATH="$PYTHONPATH:$SARRA_LIB/../"
-    fi
-fi
-
-function application_dirs {
-python3 << EOF
-import appdirs
-
-cachedir  = appdirs.user_cache_dir('sarra','science.gc.ca')
-cachedir  = cachedir.replace(' ','\ ')
-print('export CACHEDIR=%s'% cachedir)
-
-confdir = appdirs.user_config_dir('sarra','science.gc.ca')
-confdir = confdir.replace(' ','\ ')
-print('export CONFDIR=%s'% confdir)
-
-logdir  = appdirs.user_log_dir('sarra','science.gc.ca')
-logdir  = logdir.replace(' ','\ ')
-print('export LOGDIR=%s'% logdir)
-
-EOF
-}
-
+. ./flow_utils.sh
 export TESTDIR="`pwd`"
 
 eval `application_dirs`
@@ -142,29 +116,19 @@ for exchange in $exchanges_to_delete ; do
 done
 
  
-flow_confs="`cd ../sarra/examples; ls */*f[0-9][0-9].conf`"
-flow_incs="`cd ../sarra/examples; ls */*f[0-9][0-9].inc`"
-
-echo "Removing flow configs..."
-if [ "$SARRAC_LIB" ]; then
-  echo $flow_confs | sed 's/ / ; sr_/g' | sed 's/$/ ;/' | sed 's/^/ sr_/' | sed 's+/+ remove +g' | grep -Po 'sr_c[\w]*[\w\_\. ]* ;' | sed 's~^~"$SARRAC_LIB"/~' | sh
-else
-  echo $flow_confs | sed 's/ / ; sr_/g' | sed 's/$/ ;/' | sed 's/^/ sr_/' | sed 's+/+ remove +g' | grep -Po 'sr_c[\w]*[\w\_\. ]* ;' | sh 
-fi
-
-if [ "$SARRA_LIB" ]; then
-  echo $flow_confs $flow_incs | sed 's/ / ; sr_/g' | sed 's/$/ ;/' | sed 's/^/ sr_/' | sed 's+/+ remove +g' | grep -Po 'sr_[^c][\w]*[\w\_\. ]* ;' | sed 's/ /.py /' | sed 's~^~"$SARRA_LIB"/~' | sh
-else
-  echo $flow_confs $flow_incs | sed 's/ / ; sr_/g' | sed 's/$/ ;/' | sed 's/^/ sr_/' | sed 's+/+ remove +g' | grep -Po 'sr_[^c][\w]*[\w\_\. ]* ;' | sh 
-fi
+flow_configs="`cd ../sarra/examples; ls poll/pulse.conf; ls */*f[0-9][0-9].conf; ls */*f[0-9][0-9].inc`"
+sr_action "Removing flow configs..." remove "$flow_configs"
 
 echo "Removing flow config logs..."
 echo $flow_confs |  sed 's/ / ;\n rm -f sr_/g' | sed '1 s|^| rm -f sr_|' | sed '/^ rm -f sr_post/d' | sed 's+/+_+g' | sed '/conf[ ;]*$/!d' | sed 's/\.conf/_[0-9][0-9].log\*/g' | (cd $LOGDIR; sh )
-
-#echo "Removing flow cache/state files ..."
-#echo $flow_confs |  sed 's/ / ; rm /g' | sed 's/^/rm /' | sed 's+\.conf+/*+g' | (cd $CACHEDIR; sh )
-
 rm -f $LOGDIR/sr_audit* $LOGDIR/sr_poll_pulse* $LOGDIR/*f[0-9][0-9].log $LOGDIR/sr_[0-9][0-9].log*
+
+echo "Removing flow cache/state files ..."
+echo $flow_confs 'audit/None/*' |  sed 's/ / ; rm $CACHEDIR\//g' | sed 's/^/rm $CACHEDIR\//' | sed 's+\.conf+/*+g' | sh - 2>/dev/null
+
+tests_cache=$CACHEDIR/*_unit_test
+echo $tests_cache|  sed 's/ / ; rm -rf /g' | sed 's/^/rm -rf /' | sh
+
 
 httpdr=""
 if [ -f .httpdocroot ]; then

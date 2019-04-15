@@ -12,42 +12,12 @@
 #export SARRAC_LIB=""
 
 
+. ./flow_utils.sh
 export TESTDIR="`pwd`"
 #export PYTHONPATH="`pwd`/../"
 testdocroot="$HOME/sarra_devdocroot"
 testhost=localhost
 sftpuser=`whoami`
-
-
-#FIXME: puts the path at the end? so if you have multiple, guaranteed to take the wrong one?
-#       psilva worry 2019/01
-#
-if [[ ":$SARRA_LIB/../:" != *":$PYTHONPATH:"* ]]; then
-    if [ "${PYTHONPATH:${#PYTHONPATH}-1}" == ":" ]; then
-        export PYTHONPATH="$PYTHONPATH$SARRA_LIB/../"
-    else 
-        export PYTHONPATH="$PYTHONPATH:$SARRA_LIB/../"
-    fi
-fi
-
-function application_dirs {
-python3 << EOF
-import appdirs
-
-cachedir  = appdirs.user_cache_dir('sarra','science.gc.ca')
-cachedir  = cachedir.replace(' ','\ ')
-print('export CACHEDIR=%s'% cachedir)
-
-confdir = appdirs.user_config_dir('sarra','science.gc.ca')
-confdir = confdir.replace(' ','\ ')
-print('export CONFDIR=%s'% confdir)
-
-logdir  = appdirs.user_log_dir('sarra','science.gc.ca')
-logdir  = logdir.replace(' ','\ ')
-print('export LOGDIR=%s'% logdir)
-
-EOF
-}
 
 eval `application_dirs`
 
@@ -120,81 +90,17 @@ mkdir -p "$CONFDIR" 2> /dev/null
 
 export SR_CONFIG_EXAMPLES=`pwd`/../sarra/examples
 
-flow_confs="`cd ../sarra/examples; ls */*f[0-9][0-9].conf`"
-flow_incs="`cd ../sarra/examples; ls */*f[0-9][0-9].inc`"
 
-echo "Adding flow test configurations..."
-if [ "$SARRAC_LIB" ]; then
-  echo $flow_incs $flow_confs | sed 's/ / ; sr_/g' | sed 's/$/ ;/' | sed 's/^/ sr_/' | sed 's+/+ add +g' | grep -Po 'sr_c[\w]* add [\w\_\. ]* ;' | sed 's~^~"$SARRAC_LIB"/~' | sh
-else
-  echo $flow_incs $flow_confs | sed 's/ / ; sr_/g' | sed 's/$/ ;/' | sed 's/^/ sr_/' | sed 's+/+ add +g' | grep -Po 'sr_c[\w]* add [\w\_\. ]* ;' | sh
-fi
+flow_configs="`cd ../sarra/examples; ls */*f[0-9][0-9].conf; ls */*f[0-9][0-9].inc`"
+sr_action "Adding flow test configurations..." add "$flow_configs"
 
-if [ "$SARRA_LIB" ]; then
-  echo $flow_incs $flow_confs | sed 's/ / ; sr_/g' | sed 's/$/ ;/' | sed 's/^/ sr_/' | sed 's+/+ add +g' | grep -Po 'sr_[^c][\w]* add [\w\_\. ]* ;' | sed 's/ /.py /' | sed 's~^~"$SARRA_LIB"/~' | sh
-else
-  echo $flow_incs $flow_confs | sed 's/ / ; sr_/g' | sed 's/$/ ;/' | sed 's/^/ sr_/' | sed 's+/+ add +g' | grep -Po 'sr_[^c][\w]* add [\w\_\. ]* ;' | sh
-fi
 # sr_post "add" doesn't. so a little help:
-
 mkdir ${CONFDIR}/post 2> /dev/null
 cp ../sarra/examples/post/*f[0-9][0-9].conf ${CONFDIR}/post
 
 
 passed_checks=0
 count_of_checks=0
-
-function qchk {
-#
-# qchk verify correct number of queues present.
-#
-# 1 - number of queues to expect.
-# 2 - Description string.
-# 3 - query
-#
-
-queue_cnt="`rabbitmqadmin -H localhost -u bunnymaster -p ${adminpw} -f tsv list queues | awk ' BEGIN {t=0;} (NR > 1)  && /_f[0-9][0-9]/ { t+=1; }; END { print t; };'`"
-
-if [ "$queue_cnt" = $1 ]; then
-    echo "OK, as expected $1 $2" 
-    passed_checks=$((${passed_checks}+1))
-else
-    echo "FAILED, expected $1, but there are $queue_cnt $2"
-fi
-
-count_of_checks=$((${count_of_checks}+1))
-
-}
-
-function xchk {
-#
-# qchk verify correct number of exchanges present.
-#
-# 1 - number of exchanges to expect.
-# 2 - Description string.
-#
-exnow=${LOGDIR}/flow_setup.exchanges.txt
-exex=flow_lists/exchanges_expected.txt
-rabbitmqadmin -H localhost -u bunnymaster -p ${adminpw} -f tsv list exchanges | grep -v '^name' | grep -v amq\. | grep -v direct| sort >$exnow
-
-x_cnt="`wc -l <$exnow`"
-expected_cnt="`wc -l <$exex`"
-
-if [ "$x_cnt" -ge $expected_cnt ]; then
-    echo "OK, as expected $expected_cnt $1" 
-    passed_checks=$((${passed_checks}+1))
-else
-    echo "FAILED, expected $expected_cnt, but there are $x_cnt $1"
-    printf "Missing exchanges: %s\n" "`comm -23 $exex $exnow`"
-fi
-if [ "$x_cnt" -gt $expected_cnt ]; then
-    printf "NOTE: Extra exchanges: %s\n" "`comm -13 $exex $exnow`"
-fi
-
-count_of_checks=$((${count_of_checks}+1))
-
-}
-
 
 #xchk 8 "only rabbitmq default systems exchanges should be present."
 
@@ -206,8 +112,6 @@ if [ ! "$SARRA_LIB" ]; then
 else
     "$SARRA_LIB"/sr_audit.py --users foreground >$LOGDIR/sr_audit_f00.log 2>&1
 fi
-
-adminpw="`awk ' /bunnymaster:.*\@localhost/ { sub(/^.*:/,""); sub(/\@.*$/,""); print $1; exit }; ' "$CONFDIR"/credentials.conf`"
 
 qchk 20 "queues existing after 1st audit" 
 
@@ -299,12 +203,8 @@ export MAX_MESSAGES=${1}
 echo $MAX_MESSAGES
 fi
 
-echo "Starting up all components (sr start)..."
-if [ ! "$SARRA_LIB" ]; then
-    sr start >$LOGDIR/sr_start_f00.log 2>&1
-else
-    "$SARRA_LIB"/sr.py start >$LOGDIR/sr_start_f00.log 2>&1
-fi
+flow_configs="audit/ poll/pulse.conf `cd ../sarra/examples; ls */*f[0-9][0-9].conf`"
+sr_action "Starting up all components (sr start)..." start "$flow_configs"
 echo "Done."
 
 #sr_subscribe stop fclean
