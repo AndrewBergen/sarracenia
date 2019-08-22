@@ -2649,14 +2649,14 @@ class sr_config:
         log_format = '%(asctime)s [%(levelname)s] %(message)s'
         # log_format = '%(asctime)s [%(levelname)s] %(message)s %(module)s/%(funcName)s #%(lineno)d'
         logging.basicConfig(format=log_format, level=self.loglevel)
-
-        if interactive or not self.logpath:
-            self.logger = logging.getLogger()
-            self.logger.debug("logging to the console with {}".format(self.logger))
+        if self.handler:
+            self.logger.removeHandler(self.handler)
         else:
             self.logger = logging.getLogger()
-            if self.handler:
-                self.logger.removeHandler(self.handler)
+
+        if interactive or not self.logpath:
+            self.logger.debug("logging to the console with {}".format(self.logger))
+        else:
             if self.lr_interval > 0 and self.lr_backupCount > 0:
                 self.handler = handlers.TimedRotatingFileHandler(self.logpath, when=self.lr_when,
                                                                  interval=self.lr_interval,
