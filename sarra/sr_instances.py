@@ -547,7 +547,7 @@ class sr_instances(sr_config):
         self.nbr_instances = 0
         self.build_instance(0)
         self.logpath       = None
-        self.setlog()
+        self.setlog(interactive=True)
         self.start()
 
     def reload_instance(self):
@@ -745,7 +745,7 @@ class sr_instances(sr_config):
              i=1
              while i <= self.nbr_instances :
                    self.build_instance(i)
-                   self.setlog()
+                   self.setlog(interactive=True)
                    self.start_instance()
                    i = i + 1
 
