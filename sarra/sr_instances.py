@@ -732,50 +732,44 @@ class sr_instances(sr_config):
         #   inheritance of file descriptors changed.  I think earlier versions require PIPE
         #   later versions None is better.
         #   use of Pipe causes issue: https://github.com/MetPX/sarracenia/issues/63
-        subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return os.fork()
 
     def start_parent(self):
-        self.logger.debug(" pid %d instances %d no %d \n" % (os.getpid(),self.nbr_instances,self.no))
+        self.logger.debug(" pid %d instances %d no %d \n" % (os.getpid(), self.nbr_instances, self.no))
+        pid = -1
 
-        # as parent
-        if   self.no == -1 :
+        # build the parent and fork instances
+        self.build_instance(0)
+        for i in range(1, self.nbr_instances + 1):
+            pid = self.start_instance()
+            if pid == 0:
+                # we are in the child
+                self.no = i
+                break
 
-             # instance 0 is the parent... child starts at 1
-
-             i=1
-             while i <= self.nbr_instances :
-                   self.build_instance(i)
-                   self.setlog(interactive=True)
-                   self.start_instance()
-                   i = i + 1
-
-             # the number of instances has decreased... stop excedent
-             if i <= self.last_nbr_instances:
-                self.stop_instances(i,self.last_nbr_instances)
-
-             # write nbr_instances
-             self.file_set_int(self.statefile,self.nbr_instances)
-
-        # as instance
+        if pid != 0:
+            # as parent
+            # the number of instances has decreased... stop excedent
+            if self.nbr_instances < self.last_nbr_instances:
+               self.stop_instances(self.nbr_instances + 1, self.last_nbr_instances)
+            # write nbr_instances
+            self.file_set_int(self.statefile, self.nbr_instances)
         else:
-             self.build_instance(self.no)
-             self.pid = os.getpid()
-             ok = self.file_set_int(self.pidfile,self.pid)
-             self.setlog()
-             if self.no > 0:
-                os.close(0)
-                #lfd=os.open( self.logpath, os.O_CREAT|os.O_WRONLY|os.O_APPEND )
-                #os.dup2(lfd,1)
-                #os.dup2(lfd,2)
-  
-             self.logger.debug("start instance %d (pid=%d)\n" % (self.no, self.pid) )
-
-             if not ok :
-                self.logger.error("could not write pid for instance %s" % self.instance_str)
-                self.logger.error("instance not started")
-                sys.exit(1)
-               
-             self.start()
+            # as instance
+            self.build_instance(self.no)
+            os.close(0)
+            lfd = os.open(self.logpath, os.O_CREAT | os.O_WRONLY | os.O_APPEND)
+            os.dup2(lfd, 1)
+            os.dup2(lfd, 2)
+            self.pid = os.getpid()
+            ok = self.file_set_int(self.pidfile, self.pid)
+            self.setlog()
+            self.logger.debug("start instance %d (pid=%d)\n" % (self.no, self.pid))
+            if not ok:
+               self.logger.error("could not write pid for instance %s" % self.instance_str)
+               self.logger.error("instance not started")
+               sys.exit(1)
+            self.start()
         sys.exit(0)
 
     def status_instance(self,sanity=False):
