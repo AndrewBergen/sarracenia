@@ -28,9 +28,9 @@ class Msg_Clean_F91(Msg_Pclean):
             path_dict = self.build_path_dict(parent.currentDir, self.all_fxx_dirs[3:], msg_relpath, ext)
             for fxx_dir, path in path_dict.items():
                 if not os.path.exists(path):
-                    err_msg = "file not in folder {} for {} test with {:.3f}s elapsed"
+                    err_msg = "file {} not in folder {} for test with {:.3f}s elapsed"
                     lag = nowflt() - timestr2flt(parent.msg.headers['fdelay'])
-                    parent.logger.error(err_msg.format(fxx_dir[:-6], fxx_dir[-6:], lag))
+                    parent.logger.error(err_msg.format(fxx_dir[-6:], fxx_dir[:-6], lag))
                     parent.logger.debug("file missing={}".format(path))
                     result = False
         else:
