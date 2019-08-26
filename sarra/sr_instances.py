@@ -733,7 +733,6 @@ class sr_instances(sr_config):
         return os.fork()
 
     def start_parent(self):
-        import multiprocessing
         self.logger.debug(" pid %d instances %d no %d \n" % (os.getpid(), self.nbr_instances, self.no))
         pid = -1
 
@@ -742,6 +741,7 @@ class sr_instances(sr_config):
         for i in range(1, self.nbr_instances + 1):
             pid = self.start_instance()
             if pid == 0:
+                sys.stdin.close()
                 # we are in the child
                 self.no = i
                 break
@@ -755,16 +755,8 @@ class sr_instances(sr_config):
             self.file_set_int(self.statefile, self.nbr_instances)
         else:
             # as instance
-            self.logger.info("%s starting" % self.instance_str)
             self.build_instance(self.no)
-            sys.stdout.flush()
-            sys.stderr.flush()
-            si = open(os.devnull, 'r')
-            so = open(os.devnull, 'w')
-            se = open(os.devnull, 'w')
-            os.dup2(si.fileno(), sys.stdin.fileno())
-            os.dup2(so.fileno(), sys.stdout.fileno())
-            os.dup2(se.fileno(), sys.stderr.fileno())
+            self.logger.info("%s starting" % self.instance_str)
             self.pid = os.getpid()
             ok = self.file_set_int(self.pidfile, self.pid)
             self.setlog()

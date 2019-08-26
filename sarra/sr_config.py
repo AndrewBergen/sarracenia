@@ -2646,31 +2646,34 @@ class sr_config:
                 self.sumalgo = self.sumalgos['d']
 
     def setlog(self, interactive=False):
-        log_format = '%(asctime)s [%(levelname)s] %(message)s'
-        # log_format = '%(asctime)s [%(levelname)s] %(message)s %(module)s/%(funcName)s #%(lineno)d'
+        base_log_format = '%(asctime)s [%(levelname)s] {}%(message)s'
         if logging.getLogger().hasHandlers():
             for h in logging.getLogger().handlers:
                 logging.getLogger().removeHandler(h)
-
-        logging.basicConfig(format=log_format, level=self.loglevel)
         self.logger = logging.getLogger()
 
         if interactive or not self.logpath:
+            logging.basicConfig(format=base_log_format.format(''), level=self.loglevel)
             self.logger.debug("logging to the console with {}".format(self.logger))
-            self.handler = self.logger.handlers[0]
         else:
-            if self.lr_interval > 0 and self.lr_backupCount > 0:
-                self.handler = handlers.TimedRotatingFileHandler(self.logpath, when=self.lr_when,
-                                                                 interval=self.lr_interval,
-                                                                 backupCount=self.lr_backupCount)
-            else:
-                self.handler = logging.FileHandler(self.logpath)
-            self.handler.setFormatter(logging.Formatter(log_format))
-            self.handler.setLevel(self.loglevel)
-            if self.chmod_log:
-                os.chmod(self.logpath, self.chmod_log)
-            self.logger.addHandler(self.handler)
+            handler = self.create_handler(base_log_format.format(''), logging.INFO)
+            self.logger.addHandler(handler)
+            if self.loglevel == logging.DEBUG:
+                handler = self.create_handler(base_log_format.format('%(module)s/%(funcName)s #%(lineno)d '), logging.DEBUG)
+                self.logger.addHandler(handler)
             self.logger.debug("logging to file ({}) with {}".format(self.logpath, self.logger))
+
+    def create_handler(self, log_format, level):
+        if self.lr_interval > 0 and self.lr_backupCount > 0:
+            handler = handlers.TimedRotatingFileHandler(self.logpath, when=self.lr_when, interval=self.lr_interval,
+                                                        backupCount=self.lr_backupCount)
+        else:
+            handler = logging.FileHandler(self.logpath)
+        handler.setFormatter(logging.Formatter(log_format))
+        handler.setLevel(level)
+        if self.chmod_log:
+            os.chmod(self.logpath, self.chmod_log)
+        return handler
 
     def validate_urlstr(self,urlstr):
         # check url and add credentials if needed from credential file
