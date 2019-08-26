@@ -73,7 +73,7 @@ class sr_instances(sr_config):
         self.last_nbr_instances = self.file_get_int(self.statefile)
         if self.last_nbr_instances == None : self.last_nbr_instances = 0
 
-    def build_instance(self,i):
+    def build_instance(self, i):
         self.logger.debug( "sr_instances build_instance %d" % i)
         self.instance      = i
         self.instance_name = self.basic_name + '_%.2d' % i
@@ -716,8 +716,6 @@ class sr_instances(sr_config):
         if self.user_args   != None : cmd.extend(self.user_args)
         cmd.append("start")
         if self.user_config != None : cmd.append(self.user_config)
-     
-        self.logger.info("%s starting" % self.instance_str)
 
         # ===
         # MG conversion from 4 to 2 digits instance name
@@ -735,6 +733,7 @@ class sr_instances(sr_config):
         return os.fork()
 
     def start_parent(self):
+        import multiprocessing
         self.logger.debug(" pid %d instances %d no %d \n" % (os.getpid(), self.nbr_instances, self.no))
         pid = -1
 
@@ -756,11 +755,16 @@ class sr_instances(sr_config):
             self.file_set_int(self.statefile, self.nbr_instances)
         else:
             # as instance
+            self.logger.info("%s starting" % self.instance_str)
             self.build_instance(self.no)
-            os.close(0)
-            lfd = os.open(self.logpath, os.O_CREAT | os.O_WRONLY | os.O_APPEND)
-            os.dup2(lfd, 1)
-            os.dup2(lfd, 2)
+            sys.stdout.flush()
+            sys.stderr.flush()
+            si = open(os.devnull, 'r')
+            so = open(os.devnull, 'w')
+            se = open(os.devnull, 'w')
+            os.dup2(si.fileno(), sys.stdin.fileno())
+            os.dup2(so.fileno(), sys.stdout.fileno())
+            os.dup2(se.fileno(), sys.stderr.fileno())
             self.pid = os.getpid()
             ok = self.file_set_int(self.pidfile, self.pid)
             self.setlog()

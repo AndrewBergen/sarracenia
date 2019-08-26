@@ -2648,8 +2648,9 @@ class sr_config:
     def setlog(self, interactive=False):
         log_format = '%(asctime)s [%(levelname)s] %(message)s'
         # log_format = '%(asctime)s [%(levelname)s] %(message)s %(module)s/%(funcName)s #%(lineno)d'
-        if self.handler:
-            logging.getLogger().removeHandler(self.handler)
+        if logging.getLogger().hasHandlers():
+            for h in logging.getLogger().handlers:
+                logging.getLogger().removeHandler(h)
 
         logging.basicConfig(format=log_format, level=self.loglevel)
         self.logger = logging.getLogger()
