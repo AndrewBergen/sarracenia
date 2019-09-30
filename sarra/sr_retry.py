@@ -245,7 +245,7 @@ class sr_retry:
     def in_cache(self,message):
         relpath = '/'.join(message.body.split()[1:])
         sumstr  = message.properties['application_headers']['sum']
-        partstr = relpath
+        partstr = relpath  # FIXME This doesn't feel right at all
         if 'parts' in message.properties['application_headers'] :
             partstr = message.properties['application_headers']['parts']
         cache_key = relpath + ' ' + sumstr + ' ' + partstr
@@ -347,7 +347,7 @@ class sr_retry:
         N    = 0
 
         # put this in try/except in case ctrl-c breaks something
-
+        # FIXME looks like a great idea but there is nothing to handle this situation
         try:
              self.close()
              try   : os.unlink(self.heart_path)
