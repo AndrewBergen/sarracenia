@@ -122,18 +122,19 @@ nbr_fail=0
 
 count_of_checks=$((${count_of_checks}+1))
 
-echo "======= Testing: sr_config"  >>  $unittestlog
-nbr_test=$(( ${nbr_test}+1 ))
-python3 -m unittest -v ${TESTDIR}/unit_tests/sr_config_unit_test.py >> $unittestlog 2>&1
-status=${?}
-if [ $status -ne 0 ]; then
-   echo "======= Testing sr_config: Failed"
-else
-   echo "======= Testing sr_config: Succeeded"
-fi
+for t in sr_config sr_post; do
+    echo "======= Testing: sr_config"  >>  $unittestlog
+    nbr_test=$(( ${nbr_test}+1 ))
+    python3 -m unittest -v ${TESTDIR}/unit_tests/${t}_unit_test.py >> $unittestlog 2>&1
+    status=${?}
+    if [ $status -ne 0 ]; then
+       echo "======= Testing "${t}": Failed"
+    else
+       echo "======= Testing "${t}": Succeeded"
+    fi
 
-nbr_fail=$(( ${nbr_fail}+${status} ))
-
+    nbr_fail=$(( ${nbr_fail}+${status} ))
+done
 for t in sr_util sr_credentials sr_cache sr_retry sr_consumer sr_http sr_sftp sr_instances sr_pattern_match; do
     echo "======= Testing: "${t}  >>  $unittestlog
     nbr_test=$(( ${nbr_test}+1 ))
