@@ -627,14 +627,17 @@ class sr_post(sr_instances):
         remainder = fsiz % chunksize
         if remainder > 0:
             block_count = block_count + 1
-        sumstr = self.sumflg  # setting a default sumstr before it may get updated
         blocks = list(range(0, block_count))
         if self.randomize:
             random.shuffle(blocks)
             self.logger.info('Sending partitions in the following order: ' + str(blocks))
 
-        for i in blocks:
-            # first default values for sumstr
+        sumstr = self.sumflg  # setting a default sumstr before it may get updated
+        for current_block in blocks:
+            # prepare partstr
+            partstr = 'i,%d,%d,%d,%d' % (chunksize, block_count, remainder, current_block)
+
+            # prepare sumstr
             sumflg = self.sumflg
             if sumflg[:2] == 'z,' and len(sumflg) > 2:
                 sumstr = sumflg
@@ -645,19 +648,14 @@ class sr_post(sr_instances):
                 self.set_sumalgo(sumflg)
                 sumalgo = self.sumalgo
                 sumalgo.set_path(path)
-
-            # prepare block measurements and parameters for partstr
-            current_block = i
-            offset = current_block * chunksize
-            length = chunksize
-            last = current_block == block_count - 1
-            if last and remainder > 0:
-                length = remainder
-            partstr = 'i,%d,%d,%d,%d' % (chunksize, block_count, remainder, current_block)
-
             if self.sumflg not in ['0', 'n', 'z']:
                 # compute checksum and complete sumstr, if needed
                 bufsize = self.bufsize
+                offset = current_block * chunksize
+                length = chunksize
+                if current_block == block_count - 1 and remainder > 0:
+                    # this is a remainder block
+                    length = remainder
                 if length < bufsize:
                     bufsize = length
                 with open(path, 'rb') as fp:
