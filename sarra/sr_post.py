@@ -575,24 +575,20 @@ class sr_post(sr_instances):
                 sumflg = self.sumflg
         else:
             sumflg = self.sumflg
-
         xattr.set('mtime', self.msg.headers['mtime'])
 
         self.logger.debug("sum set by compute_sumstr")
-
         if sumflg[:2] == 'z,' and len(sumflg) > 2:
             sumstr = sumflg
         else:
-            if not sumflg[0] in ['0', 'd', 'n', 's', 'z']: sumflg = 'd'
-
+            if not sumflg[0] in ['0', 'd', 'n', 's', 'z']:
+                sumflg = 'd'
             self.set_sumalgo(sumflg)
             sumalgo = self.sumalgo
             sumalgo.set_path(path)
 
-            # compute checksum
-
             if sumflg in ['d', 's']:
-
+                # compute checksum
                 fp = open(path, 'rb')
                 i = 0
                 while i < fsiz:
@@ -618,13 +614,14 @@ class sr_post(sr_instances):
         """ Prepares messages partstr and checksum for each file parts to post and then posts it
 
         :param path: the path of the file to post
-        :param lstat: result of os.stat
+        :param lstat: result of os.stat for the current path
         :return: True whether the post was successful or not, it will log error(s) on failure(s)
         """
         self.logger.debug("post_file_in_parts %s" % path)
         self.post_init(path, lstat)
 
-        fsiz = lstat[stat.ST_SIZE]  # check the value of blocksize
+        # enumerating blocks
+        fsiz = lstat[stat.ST_SIZE]
         chunksize = self.set_blocksize(self.blocksize, fsiz)
         block_count = int(fsiz / chunksize)
         remainder = fsiz % chunksize
@@ -643,7 +640,7 @@ class sr_post(sr_instances):
                 sumstr = sumflg
             else:
                 sumflg = self.sumflg
-                if not self.sumflg[0] in ['0', 'd', 'n', 's', 'z']:
+                if self.sumflg[0] not in ['0', 'd', 'n', 's', 'z']:
                     sumflg = 'd'
                 self.set_sumalgo(sumflg)
                 sumalgo = self.sumalgo
@@ -663,20 +660,16 @@ class sr_post(sr_instances):
                 bufsize = self.bufsize
                 if length < bufsize:
                     bufsize = length
-                try:
-                    with open(path, 'rb') as fp:
-                        if offset != 0:
-                            fp.seek(offset, 0)
-                        t = 0
-                        while t < length:
-                            buf = fp.read(bufsize)
-                            if not buf:
-                                break
-                            sumalgo.update(buf)
-                            t += len(buf)
-                except OSError as err:
-                    self.logger.error("failed while computing file checksum {}".format(err))
-                    self.logger.debug("Exception details:", exc_info=True)
+                with open(path, 'rb') as fp:
+                    if offset != 0:
+                        fp.seek(offset, 0)
+                    t = 0
+                    while t < length:
+                        buf = fp.read(bufsize)
+                        if not buf:
+                            break
+                        sumalgo.update(buf)
+                        t += len(buf)
                 checksum = sumalgo.get_value()
                 sumstr = '%s,%s' % (sumflg, checksum)
 
@@ -749,7 +742,7 @@ class sr_post(sr_instances):
         :param value: supplementary key to add to headers
         """
         # FIXME key and value arguments are never passed in any post, are they still relevant ?
-        # Init message attributes
+        # Init post and message attributes
         self.msg.new_dir = os.path.dirname(path)
         self.msg.new_file = os.path.basename(path)
         self.post_relpath = path
@@ -774,15 +767,12 @@ class sr_post(sr_instances):
             self.msg.headers['rename'] = rename
         if key is not None:
             self.msg.headers[key] = value
-
-        if lstat is None:
-            return
-
-        if self.preserve_time:
-            self.msg.headers['mtime'] = timeflt2str(lstat.st_mtime)
-            self.msg.headers['atime'] = timeflt2str(lstat.st_atime)
-        if self.preserve_mode:
-            self.msg.headers['mode'] = "%o" % (lstat[stat.ST_MODE] & 0o7777)
+        if lstat is not None:
+            if self.preserve_time:
+                self.msg.headers['mtime'] = timeflt2str(lstat.st_mtime)
+                self.msg.headers['atime'] = timeflt2str(lstat.st_atime)
+            if self.preserve_mode:
+                self.msg.headers['mode'] = "%o" % (lstat[stat.ST_MODE] & 0o7777)
 
     # =============
     # post_link
