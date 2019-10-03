@@ -15,7 +15,6 @@ import logging
 import os
 import stat
 import sys
-import tempfile
 import unittest
 from math import ceil
 from pathlib import Path
@@ -27,7 +26,7 @@ from sarra.sr_post import sr_post
 
 
 class PartitionningTestCase(unittest.TestCase):
-    """ The parent class of all partitionning/reassembling process (p/r.p) test cases
+    """ The parent class of all partitionning/reassembling process (p/r.p) test cases.
 
     It handles base configs used in all tests
     """
@@ -40,14 +39,12 @@ class PartitionningTestCase(unittest.TestCase):
 
         :return: None
         """
-        cls.testdir = Path(tempfile.gettempdir(), __name__)
         test_conf_name = "{}.conf".format(cls.__name__)
         cls.fpath = Path(appdirs.user_config_dir(str(Path('sarra', 'post'))), test_conf_name)
         with cls.fpath.open('w') as f:
             f.write('post_broker            amqp://tsource@${FLOWBROKER}/\n')
             f.write('post_exchange_suffix   post\n')
             f.write('post_topic_prefix      v03.post\n')
-            f.write('path                   {}\n'.format(cls.testdir))
             f.write('post_base_url          ftp://anonymous@localhost:2121\n')
             f.write('outlet                 json')
         logging.disable()
@@ -56,8 +53,7 @@ class PartitionningTestCase(unittest.TestCase):
         cls.post.connect()
         cls.post.blocksize = 1000
         logging.disable(logging.NOTSET)
-        cls.fname = '{}.py'.format(__name__)
-        cls.lstat = os.stat(cls.fname)
+        cls.lstat = os.stat(__file__)
         cls.fsiz = cls.lstat[stat.ST_SIZE]
 
     @classmethod
@@ -71,7 +67,7 @@ class PartitionningTestCase(unittest.TestCase):
 
     @staticmethod
     def capture(command, *args, **kwargs):
-        """ Catch the whole std output generated from a command
+        """ Catch the whole std output generated from a command.
 
         :param command: to be executed to gets its output
         :return: every lines generated during the execution
@@ -86,10 +82,11 @@ class PartitionningTestCase(unittest.TestCase):
 
 
 class HeadersTestCase(PartitionningTestCase):
-    """ Test case related to parts string header standard """
+    """ Test case related to parts string header standard. """
     def setUp(self) -> None:
+        """ uses sr_post.post_file_in_parts to create parts msg into a JSON """
         logging.disable()
-        stdout = self.capture(self.post.post_file_in_parts, self.fname, self.lstat)
+        stdout = self.capture(self.post.post_file_in_parts, __file__, self.lstat)
         logging.disable(logging.NOTSET)
         self.headers = [json.loads(l)[3] for l in stdout]
 
@@ -107,8 +104,9 @@ class HeadersTest(HeadersTestCase):
 
 
 class V02PartsTest(HeadersTestCase):
-    """ Test that v02 parts string header is consistent with standard """
+    """ Test that v02 parts string header is consistent with standard. """
     def setUp(self) -> None:
+        """ prepares parts list """
         super(V02PartsTest, self).setUp()
         self.parts_list = [h['parts'].split(',') for h in self.headers]
 
@@ -118,27 +116,27 @@ class V02PartsTest(HeadersTestCase):
             self.assertEqual(5, len(parts))
 
     def test_method(self):
-        """ test element method of parts string """
+        """ test element method from parts string """
         for parts in self.parts_list:
             self.assertIn(parts[0], ['i', '1'])
 
     def test_bsz(self):
-        """ test element bsz of parts string """
+        """ test element bsz from parts string """
         for parts in self.parts_list:
             self.assertEqual(self.post.set_blocksize(self.post.blocksize, self.fsiz), int(parts[1]))
 
     def test_blktot(self):
-        """ test element blktot of parts string """
+        """ test element blktot from parts string """
         for parts in self.parts_list:
             self.assertEqual(ceil(self.fsiz / float(parts[1])), int(parts[2]))
 
     def test_brem(self):
-        """ test element remainder of parts string """
+        """ test element remainder from parts string """
         for parts in self.parts_list:
             self.assertEqual(self.fsiz % int(parts[1]), int(parts[3]))
 
     def test_bno(self):
-        """ test element that all blocks of parts string are there """
+        """ test element that all blocks messages are posted """
         for parts in self.parts_list:
             self.assertLess(int(parts[4]), int(parts[2]))
 
@@ -146,6 +144,7 @@ class V02PartsTest(HeadersTestCase):
 class V03BlocksTest(HeadersTestCase):
     """ Test case related to parts string header standard """
     def setUp(self) -> None:
+        """ preprares blocks dictionary """
         super(V03BlocksTest, self).setUp()
         self.blocks_list = [h['blocks'] for h in self.headers]
 
@@ -155,62 +154,77 @@ class V03BlocksTest(HeadersTestCase):
             self.assertEqual(5, len(blocks))
 
     def test_method(self):
-        """ test element method of parts string """
+        """ test element method of blocks dictionnary """
         for blocks in self.blocks_list:
             self.assertIn(blocks['method'], ['inplace'])
 
     def test_size(self):
-        """ test element bsz of parts string """
+        """ test element size of blocks dictionnary """
         for blocks in self.blocks_list:
             self.assertEqual(self.post.set_blocksize(self.post.blocksize, self.fsiz), int(blocks['size']))
 
     def test_count(self):
-        """ test element blktot of parts string """
+        """ test element blktot of blocks dictionnary """
         for blocks in self.blocks_list:
             self.assertEqual(ceil(self.fsiz / float(blocks['size'])), int(blocks['count']))
 
     def test_remainder(self):
-        """ test element blktot of parts string """
+        """ test element blktot of blocks dictionnary """
         for blocks in self.blocks_list:
             self.assertEqual(self.fsiz % int(blocks['size']), int(blocks['remainder']))
 
     def test_number(self):
-        """ test element blktot of parts string """
+        """ test element blktot of blocks dictionnary """
         self.assertEqual(int(self.blocks_list[0]['count']), len(set([b['number'] for b in self.blocks_list])))
 
 
 class V02OnePartTest(V02PartsTest):
     """ Test case related to parts string header standard """
     def setUp(self) -> None:
+        """ prepares 1 file parts string list """
         self.post.blocksize = 1
         logging.disable()
-        stdout = self.capture(self.post.post_file, self.fname, self.lstat)
+        stdout = self.capture(self.post.post_file, __file__, self.lstat)
         logging.disable(logging.NOTSET)
         self.headers = [json.loads(l)[3] for l in stdout]
         self.parts_list = [h['parts'].split(',') for h in self.headers]
 
 
-class V03OneBlockTest(V03BlocksTest):
-    """ Test case related to parts string header standard """
+class V03OneBlockTest(HeadersTestCase):
+    """ Test case related to blocks dictionary header standard """
     def setUp(self) -> None:
+        """ prepare 1 file missing blocks dictionary (which is optional) """
         self.post.blocksize = 1
-        super(V03OneBlockTest, self).setUp()
+        logging.disable()
+        stdout = self.capture(self.post.post_file, __file__, self.lstat)
+        logging.disable(logging.NOTSET)
+        self.headers = [json.loads(l)[3] for l in stdout]
+
+    def test_blocks_not_exist(self):
+        """ test that the part string get created """
+        for msg in self.headers:
+            self.assertNotIn('blocks', msg)
 
 
 class SetBlocksizeTest(PartitionningTestCase):
+    """ Test the method sr_post.set_blocksize """
     def test_set_blocksize_negative(self):
+        """ Test with negative blocksize """
         bsiz = self.post.set_blocksize(-1, self.fsiz)
         self.assertEqual(self.fsiz, bsiz)
 
     def test_set_blocksize_0(self):
+        """ Test with blocksize=0 """
         bsiz = self.post.set_blocksize(0, self.fsiz)
         self.assertEqual(self.fsiz, bsiz)
 
     def test_set_blocksize_1(self):
+        """ Test with blocksize=1 """
         bsiz = self.post.set_blocksize(1, self.fsiz)
         self.assertEqual(self.fsiz, bsiz)
 
     def test_set_blocksize_greater(self):
+        """ Test with blocksize>1 """
         bsiz = self.post.set_blocksize(2, self.fsiz)
         self.assertEqual(2, bsiz)
 
