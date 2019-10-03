@@ -126,6 +126,7 @@ class sr_message():
         self.suffix = None
         self.partflg = None
         self.checksum = None
+        self.post_exchange_split = 0
 
     def change_partflg(self, partflg):
         self.partflg = partflg
@@ -655,7 +656,7 @@ class sr_message():
                         return False
 
                 if parent.outlet == 'json':
-                    parent.__print_json(self)
+                    self.__print_json()
                 elif parent.outlet == 'url':
                     print("%s/%s" % (self.base_url, self.relpath))
                 else:
@@ -694,7 +695,7 @@ class sr_message():
                             (h, len(self.headers[h]), self.headers[h]))
 
                 if parent.outlet == 'json':
-                    parent.__print_json(self.msg)
+                    self.__print_json()
                 elif parent.outlet == 'url':
                     print("%s/%s" % (self.base_url, self.relpath))
                 else:
@@ -715,6 +716,17 @@ class sr_message():
             self.printlog("headers  %s" % self.hdrstr)
 
         return ok
+
+    def __print_json(self):
+        """ Print message as a json into stdout. """
+        if not self.topic.split('.')[1] in ['post', 'report']:
+            return
+
+        if self.post_version == 'v03':
+            json_line = json.dumps((self.pubtime, self.baseurl, self.relpath, self.headers), sort_keys=True)
+        else:
+            json_line = json.dumps((self.topic, self.headers, self.notice), sort_keys=True)
+        print("%s" % json_line)
 
     def set_exchange(self, name):
         self.exchange = name

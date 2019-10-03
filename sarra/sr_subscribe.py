@@ -655,19 +655,6 @@ class sr_subscribe(sr_instances):
                
         return True
 
-
-    def __print_json( self, m ):
-
-        if not m.topic.split('.')[1] in [ 'post', 'report' ]:
-            return
-
-        if m.post_version == 'v03':
-            json_line = json.dumps( ( m.pubtime, m.baseurl, m.relpath, m.headers ), sort_keys=True )
-        else:
-            json_line = json.dumps( ( m.topic, m.headers, m.notice ), sort_keys=True )
-
-        print("%s" % json_line )
-
     # =============
     # __on_post__ posting of message
     # =============
@@ -925,7 +912,7 @@ class sr_subscribe(sr_instances):
               if ok and self.reportback : self.msg.report_publish(201,'Published')
            else:
               if   self.outlet == 'json' :
-                   self.__print_json( self.msg )
+                   self.msg.__print_json()
               elif self.outlet == 'url'  :
                    print("%s" % '/'.join(self.msg.notice.split()[1:3]) )
 
@@ -1255,7 +1242,7 @@ class sr_subscribe(sr_instances):
               if ok and self.reportback : self.msg.report_publish(201,'Published')
            else:
               if   self.outlet == 'json' :
-                   self.__print_json( self.msg )
+                   self.msg.__print_json()
               elif self.outlet == 'url'  :
                    print("%s" % '/'.join(self.msg.notice.split()[1:3]) )
 
@@ -1305,7 +1292,7 @@ class sr_subscribe(sr_instances):
                  if ok and self.reportback : self.msg.report_publish(201,'Published')
               else:
                  if   self.outlet == 'json' :
-                      self.__print_json( self.msg )
+                      self.msg.__print_json()
                  elif self.outlet == 'url'  :
                       print("%s" % '/'.join(self.msg.notice.split()[1:3]) )
 
@@ -1568,7 +1555,7 @@ class sr_subscribe(sr_instances):
            if ok and self.reportback: self.msg.report_publish(201,'Published')
         else:
            if   self.outlet == 'json' :
-                self.__print_json( self.msg )
+                self.msg.__print_json()
            elif self.outlet == 'url'  :
                 print("%s" % '/'.join(self.msg.notice.split()[1:3]) )
 
