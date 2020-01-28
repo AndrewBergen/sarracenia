@@ -1,7 +1,7 @@
 
 Benoit Lapointe <Benoit.Lapointe@canada.ca>
   Improving testing frameworks/ Design documentation / code hygiene.
-  Some MQTT interop work. 
+  Some MQTT interop work. Packaging for Windows. 
 
 Michel Grenier <michel.grenier@IamRetiredNow.ca> (Retired)
   dd_subscribe, sr_subscribe, sr_sarra, sr_post, 
