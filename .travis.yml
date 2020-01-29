@@ -23,7 +23,6 @@ matrix:
     python: "3.7"
     env: TEST=dynamic_flow LIMIT=3000
 
-
 branches:
   only:
   - master
