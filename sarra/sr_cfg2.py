@@ -18,6 +18,7 @@ import argparse
 import socket
 import logging
 import appdirs
+import os.path
 
 from random import randint
 
@@ -237,6 +238,10 @@ class sr_cfg2:
    def parse_file(self, cfg):
        """ add settings in file to self
        """
+       if not os.path.exists(cfg):
+          print( 'failed to open: %s' % cfg )
+          return
+
        for l in open(cfg, "r").readlines():
            line = l.split()
            if (len(line) < 1) or (line[0].startswith('#')):
