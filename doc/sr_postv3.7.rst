@@ -73,7 +73,7 @@ The headers are an array of name:value pairs::
           "relPath"       - relative path can be catenated to <base_url>
           "integrity"     - WMO version of v02 sum field, under development.
           {
-             "method" : "md5" | "sha512" | "md5name" | "link" | "remove" | "cod" | "random" ,
+             "method" : "md5" | "sha512" | "md5name" | "link" | "remove" | "cod" | "random" | "arbitrary",
              "value"  : "base64 encoded checksum value"
           }
 
