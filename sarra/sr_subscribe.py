@@ -182,7 +182,7 @@ class sr_subscribe(sr_instances):
 
         if hasattr(self, 'consumer'): self.consumer.close()
 
-        if self.post_broker :
+        if self.post_broker and hasattr(self, 'post_hc'):
            if self.post_broker != self.broker : self.post_hc.close()
 
         if self.save_fp: self.save_fp.close()
