@@ -328,7 +328,8 @@ class Publisher:
         if self.hc.use_pika:
             self.channel.confirm_delivery()
         else:
-            self.channel.tx_select()
+            #self.channel.tx_select()
+            self.channel.confirm_select()
 
     def is_alive(self):
         """
@@ -344,7 +345,8 @@ class Publisher:
             if self.hc.use_pika:
                 self.channel.confirm_delivery()
             else:
-                self.channel.tx_select()
+                #self.channel.tx_select()
+                self.channel.confirm_select()
         except Exception as err:
             self.logger.error("is_alive/confirm_delivery or tx_select: {}".format(err))
             self.logger.debug("Exception details:", exc_info=True)
@@ -370,7 +372,7 @@ class Publisher:
                 else:
                     msg = amqp.Message(message, content_type=ct, application_headers=mheaders)
                 self.channel.basic_publish(msg, exchange_name, exchange_key)
-                self.channel.tx_commit()
+                #self.channel.tx_commit()
             elif self.hc.use_amqplib:
                 self.logger.debug("publish AMQPLIB is used")
                 if mexp:
@@ -380,7 +382,7 @@ class Publisher:
                 else:
                     msg = amqplib_0_8.Message(message, content_type=ct, application_headers=mheaders)
                 self.channel.basic_publish(msg, exchange_name, exchange_key)
-                self.channel.tx_commit()
+                #self.channel.tx_commit()
             elif self.hc.use_pika:
                 self.logger.debug("publish PIKA is used")
                 if mexp:
